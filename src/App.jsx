@@ -3,6 +3,7 @@ import { motion, AnimatePresence, useMotionValue, useTransform, useScroll } from
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Customizer from './components/Customizer'
+import translations from './translations'
 import './App.css'
 
 gsap.registerPlugin(ScrollTrigger)
@@ -62,9 +63,26 @@ const SPARKLE_PARTICLES = Array.from({ length: 6 }, (_, i) => {
   return { x: Math.cos(angle) * dist, y: Math.sin(angle) * dist }
 })
 
-/* ── Sparkle / decorative star component (poppy + hover-interactive) ── */
-function Sparkle({ size = 20, delay = 0, top, left, right, bottom }) {
+/* ── Sparkle / decorative star component ── */
+/* Stars gently fade out and back in periodically, slow idle rotation */
+function Sparkle({ size = 20, top, left, right, bottom }) {
   const [isHovered, setIsHovered] = useState(false)
+  const [dimmed, setDimmed] = useState(false)
+
+  useEffect(() => {
+    // Gentle fade out/in cycle (random 6–14s intervals)
+    const schedule = () => {
+      const interval = 6000 + Math.random() * 8000
+      return setTimeout(() => {
+        setDimmed(true)
+        // Fade back in after 1.5–2.5s
+        setTimeout(() => setDimmed(false), 1500 + Math.random() * 1000)
+        timerId = schedule()
+      }, interval)
+    }
+    let timerId = schedule()
+    return () => clearTimeout(timerId)
+  }, [])
 
   return (
     <motion.div
@@ -99,17 +117,18 @@ function Sparkle({ size = 20, delay = 0, top, left, right, bottom }) {
         transition={{ duration: 0.4 }}
       />
 
-      {/* Main star */}
+      {/* Main star — stays mounted, smoothly fades */}
       <motion.svg
         className="sparkle"
         width={size}
         height={size}
         viewBox="0 0 24 24"
         fill="none"
-        initial={{ opacity: 0, scale: 0, rotate: -60 }}
-        whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
+        initial={{ opacity: 0, scale: 0 }}
+        whileInView={{ opacity: 1, scale: 1 }}
         viewport={{ once: true }}
-        transition={{ duration: 0.5, delay, type: 'spring', stiffness: 260, damping: 14 }}
+        animate={dimmed ? { opacity: 0.08, scale: 0.5 } : { opacity: 1, scale: 1 }}
+        transition={{ duration: 1.2, ease: [0.25, 0.1, 0.25, 1] }}
         whileHover={{ scale: 1.5, rotate: 20 }}
       >
         <path
@@ -129,7 +148,7 @@ function Sparkle({ size = 20, delay = 0, top, left, right, bottom }) {
 const FILING_ROWS = 12
 const FILING_COLS = 20
 
-function MagneticFilings() {
+function MagneticFilings({ lang }) {
   const containerRef = useRef(null)
   const filingsRef = useRef([])
   const rafRef = useRef(null)
@@ -214,25 +233,27 @@ function MagneticFilings() {
           />
         )
       })}
-      <p className="magnetic-filings-hint">Move your cursor</p>
+      <p className="magnetic-filings-hint">{translations[lang].filingsHint}</p>
     </div>
   )
 }
 
 /* ── Scroll Text Lines — editorial horizontal scrolling text ── */
-const SCROLL_LINES = [
-  { text: 'PRECISION · CRAFTSMANSHIP · ELEGANCE · DETAIL · PRECISION · CRAFTSMANSHIP · ELEGANCE · DETAIL · ', speed: 1, direction: 1 },
-  { text: 'MAGNETIC · CLOSURE · BESPOKE · LUXURY · MAGNETIC · CLOSURE · BESPOKE · LUXURY · ', speed: 0.7, direction: -1 },
-  { text: 'UNFOLD · EXPERIENCE · TRANSFORM · REVEAL · UNFOLD · EXPERIENCE · TRANSFORM · REVEAL · ', speed: 1.3, direction: 1 },
+const SCROLL_LINE_SPEEDS = [
+  { speed: 1, direction: 1 },
+  { speed: 0.7, direction: -1 },
+  { speed: 1.3, direction: 1 },
 ]
 
-function ScrollTextLines({ scrollRef }) {
+function ScrollTextLines({ scrollRef, lang }) {
   const { scrollYProgress } = useScroll({ target: scrollRef, offset: ['start end', 'end start'] })
+  const t = translations[lang]
 
   return (
     <div className="scroll-text-bg">
-      {SCROLL_LINES.map((line, i) => {
-        const baseOffset = line.direction * line.speed * 600
+      {SCROLL_LINE_SPEEDS.map((cfg, i) => {
+        const line = { text: t.scrollLines[i], ...cfg }
+        const baseOffset = cfg.direction * cfg.speed * 600
         return (
           <ScrollTextLine key={i} line={line} scrollYProgress={scrollYProgress} baseOffset={baseOffset} index={i} />
         )
@@ -255,19 +276,15 @@ function ScrollTextLine({ line, scrollYProgress, baseOffset, index }) {
 }
 
 /* ── Typewriter — sequential type / delete / retype ── */
-const TYPEWRITER_PHRASES = [
-  'Everyone loves stories.',
-  'Imagination is the only limit.',
-  'Design your own narrative.',
-]
 
-function TypewriterText() {
+function TypewriterText({ lang }) {
+  const phrases = translations[lang].typewriterPhrases
   const [phraseIdx, setPhraseIdx] = useState(0)
   const [charIdx, setCharIdx] = useState(0)
   const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
-    const phrase = TYPEWRITER_PHRASES[phraseIdx]
+    const phrase = phrases[phraseIdx]
     let timeout
 
     if (!isDeleting && charIdx < phrase.length) {
@@ -279,14 +296,14 @@ function TypewriterText() {
     } else if (isDeleting && charIdx === 0) {
       timeout = setTimeout(() => {
         setIsDeleting(false)
-        setPhraseIdx((p) => (p + 1) % TYPEWRITER_PHRASES.length)
+        setPhraseIdx((p) => (p + 1) % phrases.length)
       }, 400)
     }
 
     return () => clearTimeout(timeout)
-  }, [charIdx, isDeleting, phraseIdx])
+  }, [charIdx, isDeleting, phraseIdx, phrases])
 
-  const displayed = TYPEWRITER_PHRASES[phraseIdx].slice(0, charIdx)
+  const displayed = phrases[phraseIdx].slice(0, charIdx)
 
   return (
     <div className="typewriter-container">
@@ -313,10 +330,10 @@ function SectionDivider() {
 
 /* ── Product photos carousel ── */
 const productPhotos = [
-  { src: 'https://images.unsplash.com/photo-1586075010882-3a0b4f7462a0?w=800&h=600&fit=crop', caption: 'Closed — Linen-wrapped exterior with magnetic seal' },
-  { src: 'https://images.unsplash.com/photo-1603974372039-adc49044b6bd?w=800&h=600&fit=crop', caption: 'Opening — Covers fall to reveal the interior' },
-  { src: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=800&h=600&fit=crop', caption: 'Revealed — Book elevated by ribbon straps' },
-  { src: 'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=800&h=600&fit=crop', caption: 'Detail — Burgundy interior with gold accents' },
+  { src: 'https://images.unsplash.com/photo-1586075010882-3a0b4f7462a0?w=800&h=600&fit=crop' },
+  { src: 'https://images.unsplash.com/photo-1603974372039-adc49044b6bd?w=800&h=600&fit=crop' },
+  { src: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=800&h=600&fit=crop' },
+  { src: 'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=800&h=600&fit=crop' },
 ]
 
 /* Slide direction variants for carousel */
@@ -343,9 +360,39 @@ const slideVariants = {
   }),
 }
 
+/* ── 3D tilt on hover for spec cards ── */
+function TiltCard({ children, className, ...rest }) {
+  const cardRef = useRef(null)
+  const handleMove = (e) => {
+    const el = cardRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const cx = rect.left + rect.width / 2
+    const cy = rect.top + rect.height / 2
+    const dx = (e.clientX - cx) / (rect.width / 2)
+    const dy = (e.clientY - cy) / (rect.height / 2)
+    el.style.transform = `perspective(800px) rotateY(${dx * 6}deg) rotateX(${-dy * 6}deg) scale(1.02)`
+  }
+  const handleLeave = () => {
+    if (cardRef.current) cardRef.current.style.transform = ''
+  }
+  return (
+    <motion.div
+      ref={cardRef}
+      className={className}
+      onMouseMove={handleMove}
+      onMouseLeave={handleLeave}
+      {...rest}
+    >
+      {children}
+    </motion.div>
+  )
+}
+
 export default function App() {
   const [navScrolled, setNavScrolled] = useState(false)
   const [[activePhoto, direction], setActivePhoto] = useState([0, 0])
+  const [lang, setLang] = useState('ro')
 
   const heroRef = useRef(null)
   const heroContentRef = useRef(null)
@@ -407,6 +454,8 @@ export default function App() {
     return () => ctx.revert()
   }, [])
 
+  const t = translations[lang]
+
   return (
     <>
       <div className="scroll-progress" ref={progressRef} />
@@ -415,10 +464,19 @@ export default function App() {
       <nav className={`nav ${navScrolled ? 'scrolled' : ''}`}>
         <a href="#hero" className="nav-logo">UNFOLD</a>
         <div className="nav-links">
-          <a href="#story">Story</a>
-          <a href="#gallery">Gallery</a>
-          <a href="#customize">Customize</a>
-          <a href="#contact" className="nav-cta">Inquire</a>
+          <a href="#story">{t.navStory}</a>
+          <a href="#gallery">{t.navGallery}</a>
+          <a href="#customize">{t.navCustomize}</a>
+          <a href="#contact" className="nav-cta">{t.navInquire}</a>
+          <button
+            className="lang-toggle"
+            onClick={() => setLang(l => l === 'en' ? 'ro' : 'en')}
+            aria-label="Switch language"
+          >
+            <span className={lang === 'ro' ? 'lang-active' : ''}>RO</span>
+            <span className="lang-sep">|</span>
+            <span className={lang === 'en' ? 'lang-active' : ''}>EN</span>
+          </button>
         </div>
       </nav>
 
@@ -429,6 +487,9 @@ export default function App() {
         <Sparkle size={18} top="25%" right="15%" delay={1.1} />
         <Sparkle size={22} bottom="28%" left="8%" delay={1.4} />
         <Sparkle size={16} bottom="22%" right="10%" delay={1.6} />
+        <Sparkle size={14} top="35%" left="25%" delay={0.5} />
+        <Sparkle size={12} top="14%" right="28%" delay={1.8} />
+        <Sparkle size={20} bottom="35%" right="22%" delay={0.9} />
         <motion.div
           className="hero-content"
           ref={heroContentRef}
@@ -436,12 +497,12 @@ export default function App() {
           initial="hidden"
           animate="visible"
         >
-          <motion.p className="hero-eyebrow" variants={heroChild}>Premium Custom Packaging</motion.p>
-          <motion.h1 className="hero-title" variants={heroChild}>
-            A book, reimagined<br />as <em>an experience.</em>
+          <motion.p className="hero-eyebrow" variants={heroChild}>{t.heroEyebrow}</motion.p>
+          <motion.h1 className="hero-title shimmer-text" variants={heroChild}>
+            {t.heroTitle1}<br />{t.heroTitleConnector}<em>{t.heroTitle2}</em>
           </motion.h1>
           <motion.p className="hero-sub" variants={heroChild}>
-            Every element engineered to transform<br />the act of opening into something unforgettable.
+            {t.heroSub1}<br />{t.heroSub2}
           </motion.p>
           <motion.div className="hero-cta-row" variants={heroChild}>
             <motion.a
@@ -450,7 +511,7 @@ export default function App() {
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.97 }}
             >
-              Customize yours
+              {t.heroCta}
             </motion.a>
             <motion.a
               href="#story"
@@ -458,7 +519,7 @@ export default function App() {
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.97 }}
             >
-              Learn more
+              {t.heroLearn}
             </motion.a>
           </motion.div>
         </motion.div>
@@ -472,12 +533,12 @@ export default function App() {
         <div className="section-inner">
           <div className="story-grid">
             <div className="story-text">
-              <motion.p {...slideRight()} className="section-eyebrow">The Product</motion.p>
+              <motion.p {...slideRight()} className="section-eyebrow">{t.storyEyebrow}</motion.p>
               <motion.h2 {...slideRight(0.1)} className="section-title">
-                At first glance, a refined<br />rectangular form.
+                {t.storyTitle1}<br />{t.storyTitle2}
               </motion.h2>
               <motion.p {...slideRight(0.2)} className="section-body">
-                Minimal. Precise. Magnetically sealed. The exterior reveals nothing of what lies within — only the quiet confidence of something worth waiting for.
+                {t.storyBody}
               </motion.p>
             </div>
             <motion.div {...slideLeft(0.15)} className="story-visual">
@@ -496,16 +557,17 @@ export default function App() {
 
       {/* ===== THE MOMENT ===== */}
       <section className="section moment-section">
-        <MagneticFilings />
+        <MagneticFilings lang={lang} />
         <Sparkle size={24} top="15%" right="18%" delay={0.3} />
         <Sparkle size={16} bottom="20%" left="14%" delay={0.6} />
+        <Sparkle size={12} top="40%" left="5%" delay={0.9} />
         <div className="section-inner centered-text" style={{ position: 'relative', zIndex: 2, pointerEvents: 'none' }}>
-          <motion.p {...blurUp()} className="section-eyebrow">The Moment</motion.p>
+          <motion.p {...blurUp()} className="section-eyebrow">{t.momentEyebrow}</motion.p>
           <motion.h2 {...blurUp(0.1)} className="section-title-xl">
-            The true magic begins<br />the moment it is <em>opened.</em>
+            {t.momentTitle1}<br />{t.momentTitle2} <em>{t.momentTitle3}</em>
           </motion.h2>
           <motion.p {...blurUp(0.2)} className="section-body">
-            As the magnetic closure releases, the structure unfolds horizontally in a controlled, almost theatrical motion. The walls gently fall away, guided by fine straps — elevating the book upward.
+            {t.momentBody}
           </motion.p>
         </div>
       </section>
@@ -516,14 +578,16 @@ export default function App() {
       <section className="section gallery-section" id="gallery">
         <Sparkle size={20} top="8%" left="6%" delay={0.2} />
         <Sparkle size={14} top="12%" right="8%" delay={0.5} />
+        <Sparkle size={10} bottom="15%" left="20%" delay={0.7} />
+        <Sparkle size={16} bottom="10%" right="25%" delay={0.4} />
         <div className="section-inner">
           <div className="centered-text">
-            <motion.p {...fadeUp()} className="section-eyebrow">The Product</motion.p>
+            <motion.p {...fadeUp()} className="section-eyebrow">{t.galleryEyebrow}</motion.p>
             <motion.h2 {...fadeUp(0.1)} className="section-title">
-              Choreographed<br />to <em>perfection.</em>
+              {t.galleryTitle1}<br />{t.galleryTitleConnector}<em>{t.galleryTitle2}</em>
             </motion.h2>
             <motion.p {...fadeUp(0.2)} className="section-body" style={{ marginBottom: '3rem' }}>
-              Every angle tells a story of precision engineering and refined craft.
+              {t.galleryBody}
             </motion.p>
           </div>
 
@@ -552,7 +616,7 @@ export default function App() {
                 <motion.img
                   key={activePhoto}
                   src={productPhotos[activePhoto].src}
-                  alt={productPhotos[activePhoto].caption}
+                  alt={t.galleryCaptions[activePhoto]}
                   className="carousel-image"
                   custom={direction}
                   variants={slideVariants}
@@ -607,7 +671,7 @@ export default function App() {
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.35, ease }}
                 >
-                  {productPhotos[activePhoto].caption}
+                  {t.galleryCaptions[activePhoto]}
                 </motion.p>
               </AnimatePresence>
             </div>
@@ -652,10 +716,10 @@ export default function App() {
 
       {/* ===== STATEMENT ===== */}
       <section className="section statement-section" ref={statementRef}>
-        <ScrollTextLines scrollRef={statementRef} />
+        <ScrollTextLines scrollRef={statementRef} lang={lang} />
         <div className="section-inner centered-text" style={{ position: 'relative', zIndex: 2 }}>
           <h2 className="statement-text">
-            {'It is not just packaging.'.split(' ').map((word, i) => (
+            {t.statement1.split(' ').map((word, i) => (
               <motion.span
                 key={i}
                 className="statement-word"
@@ -669,7 +733,7 @@ export default function App() {
             ))}
           </h2>
           <h2 className="statement-text statement-accent">
-            {'It is choreography.'.split(' ').map((word, i) => (
+            {t.statement2.split(' ').map((word, i) => (
               <motion.span
                 key={i}
                 className="statement-word"
@@ -690,16 +754,16 @@ export default function App() {
         <Sparkle size={22} top="6%" right="12%" delay={0.3} />
         <div className="section-inner">
           <div className="centered-text">
-            <motion.p {...fadeUp()} className="section-eyebrow">Configure</motion.p>
+            <motion.p {...fadeUp()} className="section-eyebrow">{t.customizeEyebrow}</motion.p>
             <motion.h2 {...fadeUp(0.1)} className="section-title">
-              Your wrapper, your story.
+              {t.customizeTitle}
             </motion.h2>
             <motion.p {...fadeUp(0.2)} className="section-body">
-              Choose the color, size, and finish — and watch it take shape.
+              {t.customizeBody}
             </motion.p>
           </div>
           <motion.div {...scaleUp(0.25)}>
-            <Customizer />
+            <Customizer lang={lang} />
           </motion.div>
         </div>
       </section>
@@ -707,30 +771,22 @@ export default function App() {
       {/* ===== SPECS ===== */}
       <section className="section specs-section">
         <div className="section-inner">
-          <motion.p {...fadeUp()} className="section-eyebrow">Specs & Features</motion.p>
+          <motion.p {...fadeUp()} className="section-eyebrow">{t.specsEyebrow}</motion.p>
 
           <div className="specs-grid">
-            {[
-              { icon: '⟁', title: 'Magnetic Closure', desc: 'Precision-engineered neodymium magnets create a satisfying, secure seal.' },
-              { icon: '⧖', title: 'Guided Straps', desc: 'Fine ribbon straps control the unfolding and elevate the contents with intention.' },
-              { icon: '◇', title: 'Custom Finishes', desc: 'Hot foil stamping, embossing, debossing, UV spot, and specialty coatings.' },
-              { icon: '⬡', title: 'Bespoke Dimensions', desc: 'Engineered to fit your exact product, down to the millimeter.' },
-              { icon: '◎', title: 'Premium Materials', desc: 'Soft-touch papers, linen cloths, raw fibers, and specialty substrates.' },
-              { icon: '⊞', title: 'Structural Integrity', desc: 'Rigid board construction with reinforced corners for lasting durability.' },
-            ].map((spec, i) => (
-              <motion.div
+            {t.specs.map((spec, i) => (
+              <TiltCard
                 className="spec-item"
                 key={spec.title}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-60px' }}
                 transition={{ duration: 0.6, ease, delay: i * 0.08 }}
-                whileHover={{ backgroundColor: 'var(--color-bg-alt)', transition: { duration: 0.2 } }}
               >
                 <div className="spec-icon">{spec.icon}</div>
                 <h3 className="spec-title">{spec.title}</h3>
                 <p className="spec-desc">{spec.desc}</p>
-              </motion.div>
+              </TiltCard>
             ))}
           </div>
         </div>
@@ -741,13 +797,14 @@ export default function App() {
       <section className="section closing-section">
         <Sparkle size={26} top="12%" left="10%" delay={0.3} />
         <Sparkle size={16} bottom="18%" right="12%" delay={0.6} />
+        <Sparkle size={12} top="30%" right="6%" delay={0.8} />
         <div className="section-inner centered-text">
-          <motion.p {...blurUp()} className="section-eyebrow">Personal</motion.p>
+          <motion.p {...blurUp()} className="section-eyebrow">{t.closingEyebrow}</motion.p>
           <motion.h2 {...blurUp(0.1)} className="section-title-xl">
-            A packaging experience<br />that feels <em>deeply personal.</em>
+            {t.closingTitle1}<br />{t.closingTitleConnector}<em>{t.closingTitle2}</em>
           </motion.h2>
           <motion.p {...blurUp(0.2)} className="section-body">
-            Crafted not just for a product — but for the person receiving it.
+            {t.closingBody}
           </motion.p>
         </div>
       </section>
@@ -756,13 +813,14 @@ export default function App() {
       <section className="section cta-section" id="contact">
         <Sparkle size={20} top="20%" left="15%" delay={0.2} />
         <Sparkle size={14} top="30%" right="18%" delay={0.5} />
+        <Sparkle size={10} bottom="30%" left="8%" delay={0.7} />
         <div className="section-inner centered-text">
-          <motion.h2 {...scaleUp()} className="cta-title">Begin your story.</motion.h2>
+          <motion.h2 {...scaleUp()} className="cta-title shimmer-text">{t.ctaTitle}</motion.h2>
           <motion.p {...fadeUp(0.1)} className="section-body">
-            Every project starts with a conversation.<br />Tell us your vision, and we'll craft something extraordinary.
+            {t.ctaBody1}<br />{t.ctaBody2}
           </motion.p>
           <motion.div {...fadeUp(0.15)} style={{ marginTop: '4rem' }}>
-            <TypewriterText />
+            <TypewriterText lang={lang} key={lang} />
           </motion.div>
           <motion.a
             href="mailto:hello@unfold.design"
@@ -771,7 +829,7 @@ export default function App() {
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.97 }}
           >
-            <span>Get in Touch</span>
+            <span>{t.ctaButton}</span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <path d="M5 12h14m0 0l-6-6m6 6l-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
@@ -783,7 +841,7 @@ export default function App() {
       <footer className="footer">
         <div className="footer-inner">
           <span className="footer-logo">UNFOLD</span>
-          <span className="footer-copy">&copy; 2026 Unfold. Premium Custom Packaging.</span>
+          <span className="footer-copy">{t.footerCopy}</span>
         </div>
       </footer>
     </>

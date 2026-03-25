@@ -178,8 +178,8 @@ function PackageBox({ color, finish, sizeId, variant = 'closed', accentColor = '
     const flipTarget = flipped ? Math.PI : 0
     groupRef.current.rotation.y += (flipTarget - groupRef.current.rotation.y) * Math.min(delta * 4, 1)
 
-    // Smooth lerp open amount (slower for dramatic effect)
-    openRef.current += (targetOpen - openRef.current) * Math.min(delta * 2, 1)
+    // Smooth lerp open amount (slow and dramatic)
+    openRef.current += (targetOpen - openRef.current) * Math.min(delta * 0.8, 1)
     const o = openRef.current
 
     // Sequenced animation: flaps lift first (0→0.4), then walls fall (0.3→1)
