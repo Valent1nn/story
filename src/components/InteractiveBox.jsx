@@ -6,14 +6,11 @@ import * as THREE from 'three'
 /*
   InteractiveBox — 3D preview for the Customizer.
 
-  STRUCTURE:
-  The front and back faces extend above the box height. At the top,
-  each face has a lip/flap that folds 90° inward to form the lid.
-  The two flaps meet at the center — magnetic seal.
+  TWO VARIANTS:
+  - "closed": Lid flaps folded inward, magnetic seal.
+  - "open":   Front/back faces rotated outward ~15°, flaps ajar (L-shaped).
 
-  FRONT FACE: Shows "Your custom text" instead of gold accents.
-  EMBOSS: Text is raised/extruded so it's visible when zooming.
-  LINEN: Procedural canvas texture with crosshatch pattern.
+  Animated transition between variants via spring interpolation.
 */
 
 /* Generate a dramatic linen crosshatch texture via canvas */
@@ -102,9 +99,16 @@ function createLinenTexture(baseColor) {
   return tex
 }
 
-function PackageBox({ color, finish, sizeId }) {
+const STRAP_WIDTH = 0.125
+const STRAP_SEGS = 10
+
+function PackageBox({ color, finish, sizeId, variant = 'closed', accentColor = '#6b2232' }) {
   const groupRef = useRef()
   const [flipped, setFlipped] = useState(false)
+
+  // Animated open amount: 0 = closed, 1 = open
+  const openRef = useRef(0)
+  const targetOpen = variant === 'open' ? 1 : 0
 
   const scale = sizeId === 'sm' ? 0.8 : sizeId === 'lg' ? 1.15 : 1
 
@@ -118,8 +122,6 @@ function PackageBox({ color, finish, sizeId }) {
 
     const matProps = { shininess }
     if (isLinen) {
-      // The linen texture already has the color baked in — use white
-      // so it doesn't darken from color × texture multiplication
       matProps.color = '#c0c0c0'
       matProps.map = linenTex
     } else {
@@ -128,41 +130,138 @@ function PackageBox({ color, finish, sizeId }) {
 
     return {
       mainMat: new THREE.MeshPhongMaterial(matProps),
-      interiorMat: new THREE.MeshPhongMaterial({ color: '#6b2232', shininess: 12 }),
+      interiorMat: new THREE.MeshPhongMaterial({ color: accentColor, shininess: 12 }),
       accentMat: new THREE.MeshPhongMaterial({
         color: finish === 'foil' ? '#e8c97a' : '#b08d57',
         shininess: finish === 'foil' ? 100 : 60,
       }),
     }
-  }, [color, finish, linenTex])
+  }, [color, finish, linenTex, accentColor])
 
-  // Smooth flip
-  useFrame((_, delta) => {
-    if (!groupRef.current) return
-    const target = flipped ? Math.PI : 0
-    groupRef.current.rotation.y += (target - groupRef.current.rotation.y) * Math.min(delta * 4, 1)
-  })
+  // Refs for animated groups
+  const frontWallRef = useRef()
+  const backWallRef = useRef()
+  const frontFlapRef = useRef()
+  const backFlapRef = useRef()
+  const lidSeamRef = useRef()
+  const bookGroupRef = useRef()
+  const strapsGroupRef = useRef()
 
-  // Dimensions
+  // Strap geometries (2 ribbons: 1 front-wall, 1 back-wall)
+  const strapGeos = useMemo(() =>
+    Array.from({ length: 2 }, () => new THREE.PlaneGeometry(STRAP_WIDTH, 1, 1, STRAP_SEGS)), [])
+  const strapMat = useMemo(() => new THREE.MeshPhongMaterial({
+    color: '#c9a96e', shininess: 35, side: THREE.DoubleSide,
+  }), [])
+
+  // Dimensions (before useFrame so the callback can reference them)
   const t = 0.04
   const bW = 2 * scale
   const bH = 1.5 * scale
   const bD = 0.38 * scale
   const gap = 0.04
 
-  // Wrapper outer dims
   const wW = bW + (gap + t) * 2
   const wH = bH + gap
   const wD = bD + (gap + t) * 2
 
-  // Lid flaps: front/back faces extend up, then fold 90° inward
   const flapH = t
   const flapD = wD / 2 + t
-
   const panelH = wH
 
   const isEmboss = finish === 'emboss'
   const textColor = finish === 'foil' ? '#e8c97a' : '#aa9100'
+
+  // Smooth flip + open/close animation
+  useFrame((_, delta) => {
+    if (!groupRef.current) return
+    const flipTarget = flipped ? Math.PI : 0
+    groupRef.current.rotation.y += (flipTarget - groupRef.current.rotation.y) * Math.min(delta * 4, 1)
+
+    // Smooth lerp open amount (slower for dramatic effect)
+    openRef.current += (targetOpen - openRef.current) * Math.min(delta * 2, 1)
+    const o = openRef.current
+
+    // Sequenced animation: flaps lift first (0→0.4), then walls fall (0.3→1)
+    const flapProgress = Math.min(o / 0.4, 1) // 0→1 during first 40% of animation
+    const wallProgress = Math.max((o - 0.3) / 0.7, 0) // 0→1 starting at 30%
+
+    // Walls fall outward to 80°
+    const wallAngle = wallProgress * (80 * Math.PI / 180)
+    // Flaps: closed = flat on top of lid (rotation 0). Open = lifted 35° outward.
+    const flapLift = flapProgress * (35 * Math.PI / 180)
+
+    if (frontWallRef.current) {
+      frontWallRef.current.rotation.x = wallAngle
+    }
+    if (backWallRef.current) {
+      backWallRef.current.rotation.x = -wallAngle
+    }
+    if (frontFlapRef.current) {
+      frontFlapRef.current.rotation.x = flapLift
+    }
+    if (backFlapRef.current) {
+      backFlapRef.current.rotation.x = -flapLift
+    }
+    if (lidSeamRef.current) {
+      const seamVisible = o < 0.05
+      lidSeamRef.current.visible = seamVisible
+      if (seamVisible) {
+        lidSeamRef.current.material.opacity = 1 - o * 20
+      }
+    }
+
+    // ── Fabric straps: lift the book as walls fall ──
+    const bookLift = wallProgress * panelH * 0.25
+    if (bookGroupRef.current) {
+      bookGroupRef.current.position.y = bookLift
+    }
+
+    if (strapsGroupRef.current) {
+      const strapWallH = panelH * 0.5
+      const innerOff = t / 2 + 0.005
+      const bookFaceZ = (wD - t * 2) / 2 - 0.005
+      const strapConfigs = [
+        { x: 0, zSign: 1 },
+        { x: 0, zSign: -1 },
+      ]
+
+      strapsGroupRef.current.children.forEach((mesh, i) => {
+        const cfg = strapConfigs[i]
+        const a = wallAngle
+
+        // Wall attachment (rotates with wall)
+        const wy = t + strapWallH * Math.cos(a) + innerOff * Math.sin(a)
+        const wz = cfg.zSign > 0
+          ? (wD / 2 - t / 2) + strapWallH * Math.sin(a) - innerOff * Math.cos(a)
+          : -(wD / 2 - t / 2) - strapWallH * Math.sin(a) + innerOff * Math.cos(a)
+
+        // Book face attachment
+        const by = t + bookLift + (wH - t) * 0.35
+        const bz = cfg.zSign * bookFaceZ
+
+        // Fabric sag — decreases quickly as strap goes taut
+        const slack = Math.pow(Math.max(0, 1 - wallProgress * 1.3), 2)
+        const sagAmount = slack * panelH * 0.12
+        const midY = (wy + by) / 2 - sagAmount
+        const midZ = (wz + bz) / 2
+
+        // Deform ribbon vertices along quadratic bezier
+        const pos = mesh.geometry.attributes.position
+        for (let j = 0; j <= STRAP_SEGS; j++) {
+          const param = j / STRAP_SEGS
+          const omt = 1 - param
+          const py = omt * omt * wy + 2 * omt * param * midY + param * param * by
+          const pz = omt * omt * wz + 2 * omt * param * midZ + param * param * bz
+          pos.setXYZ(j * 2, cfg.x - STRAP_WIDTH / 2, py, pz)
+          pos.setXYZ(j * 2 + 1, cfg.x + STRAP_WIDTH / 2, py, pz)
+        }
+        pos.needsUpdate = true
+        mesh.geometry.computeVertexNormals()
+      })
+    }
+
+  })
 
   return (
     <group
@@ -197,173 +296,199 @@ function PackageBox({ color, finish, sizeId }) {
         <boxGeometry args={[0.003, panelH - 0.04, wD - t * 2 - 0.04]} />
       </mesh>
 
-      {/* ── FRONT FACE (full height) ── */}
-      <mesh position={[0, t + panelH / 2, wD / 2 - t / 2]} material={mainMat} castShadow>
-        <boxGeometry args={[wW, panelH, t]} />
-      </mesh>
-      <mesh position={[0, t + panelH / 2, wD / 2 - t - 0.001]} material={interiorMat}>
-        <boxGeometry args={[wW - 0.04, panelH - 0.04, 0.003]} />
-      </mesh>
-
-      {/* ── BACK FACE (full height) ── */}
-      <mesh position={[0, t + panelH / 2, -wD / 2 + t / 2]} material={mainMat} castShadow>
-        <boxGeometry args={[wW, panelH, t]} />
-      </mesh>
-      <mesh position={[0, t + panelH / 2, -wD / 2 + t + 0.001]} material={interiorMat}>
-        <boxGeometry args={[wW - 0.04, panelH - 0.04, 0.003]} />
-      </mesh>
-
-      {/* ── FRONT LID FLAP ──
-          Extension of the front face that folds 90° inward at the top,
-          forming the front half of the magnetic lid. */}
-      <mesh position={[0, t + panelH + flapH / 2, wD / 2 - t / 2 - flapD / 2]} material={mainMat} castShadow>
-        <boxGeometry args={[wW, flapH, flapD]} />
-      </mesh>
-      <mesh position={[0, t + panelH + 0.001, wD / 2 - t / 2 - flapD / 2]} material={interiorMat}>
-        <boxGeometry args={[wW - 0.03, 0.003, flapD - 0.03]} />
-      </mesh>
-
-      {/* ── BACK LID FLAP ──
-          Mirror of front flap, forms the back half of the lid. */}
-      <mesh position={[0, t + panelH + flapH / 2, -wD / 2 + t / 2 + flapD / 2]} material={mainMat} castShadow>
-        <boxGeometry args={[wW, flapH, flapD]} />
-      </mesh>
-      <mesh position={[0, t + panelH + 0.001, -wD / 2 + t / 2 + flapD / 2]} material={interiorMat}>
-        <boxGeometry args={[wW - 0.03, 0.003, flapD - 0.03]} />
-      </mesh>
-
-      {/* ── LID SEAM (where flaps meet at center) ── */}
-      <mesh position={[0, t + panelH + flapH + 0.001, 0]} material={accentMat}>
-        <boxGeometry args={[wW - 0.1, 0.003, 0.008]} />
-      </mesh>
-
-      {/* ── FRONT TEXT: "Your custom text" ── */}
-      <Text
-        position={[0, t + panelH * 0.55, wD / 2 + 0.006]}
-        fontSize={0.1 * scale}
-        color={isEmboss ? color : textColor}
-        anchorX="center"
-        anchorY="middle"
-        letterSpacing={0.1}
-        maxWidth={wW * 0.75}
-        textAlign="center"
-        depthOffset={-2}
-        outlineWidth={isEmboss ? 0.003 : 0}
-        outlineColor={isEmboss ? '#000000' : undefined}
-        outlineOpacity={isEmboss ? 0.15 : 0}
-      >
-        Your custom text
-      </Text>
-
-      {/* BACK TEXT (mirrored) */}
-      <Text
-        position={[0, t + panelH * 0.55, -wD / 2 - 0.006]}
-        fontSize={0.1 * scale}
-        color={isEmboss ? color : textColor}
-        anchorX="center"
-        anchorY="middle"
-        letterSpacing={0.1}
-        maxWidth={wW * 0.75}
-        textAlign="center"
-        rotation={[0, Math.PI, 0]}
-        depthOffset={-2}
-        outlineWidth={isEmboss ? 0.003 : 0}
-        outlineColor={isEmboss ? '#000000' : undefined}
-        outlineOpacity={isEmboss ? 0.15 : 0}
-      >
-        Your custom text
-      </Text>
-
-      {/* Emboss: same-color raised text with subtle shadow outline to mimic pressed letterforms */}
-      {isEmboss && (
-        <>
-          {/* Front — lighter shade text slightly in front for highlight effect */}
-          <Text
-            position={[0, t + panelH * 0.55 + 0.003, wD / 2 + 0.009]}
-            fontSize={0.1 * scale}
-            color="#ffffff"
-            anchorX="center"
-            anchorY="middle"
-            letterSpacing={0.1}
-            maxWidth={wW * 0.75}
-            textAlign="center"
-            depthOffset={-3}
-            fillOpacity={0.18}
-          >
-            Your custom text
-          </Text>
-          {/* Front — darker shade text slightly offset for shadow effect */}
-          <Text
-            position={[0, t + panelH * 0.55 - 0.003, wD / 2 + 0.008]}
-            fontSize={0.1 * scale}
-            color="#000000"
-            anchorX="center"
-            anchorY="middle"
-            letterSpacing={0.1}
-            maxWidth={wW * 0.75}
-            textAlign="center"
-            depthOffset={-3}
-            fillOpacity={0.12}
-          >
-            Your custom text
-          </Text>
-          {/* Back — highlight */}
-          <Text
-            position={[0, t + panelH * 0.55 + 0.003, -wD / 2 - 0.009]}
-            fontSize={0.1 * scale}
-            color="#ffffff"
-            anchorX="center"
-            anchorY="middle"
-            letterSpacing={0.1}
-            maxWidth={wW * 0.75}
-            textAlign="center"
-            rotation={[0, Math.PI, 0]}
-            depthOffset={-3}
-            fillOpacity={0.18}
-          >
-            Your custom text
-          </Text>
-          {/* Back — shadow */}
-          <Text
-            position={[0, t + panelH * 0.55 - 0.003, -wD / 2 - 0.008]}
-            fontSize={0.1 * scale}
-            color="#000000"
-            anchorX="center"
-            anchorY="middle"
-            letterSpacing={0.1}
-            maxWidth={wW * 0.75}
-            textAlign="center"
-            rotation={[0, Math.PI, 0]}
-            depthOffset={-3}
-            fillOpacity={0.12}
-          >
-            Your custom text
-          </Text>
-        </>
-      )}
-
-      {/* Foil: shimmering accent bar under text */}
-      {finish === 'foil' && (
-        <mesh position={[0, t + panelH * 0.45, wD / 2 + 0.006]} material={accentMat}>
-          <boxGeometry args={[wW * 0.5, 0.015, 0.004]} />
+      {/* ── FRONT WALL GROUP (pivots at bottom edge) ── */}
+      <group ref={frontWallRef} position={[0, t, wD / 2 - t / 2]}>
+        {/* Main front face */}
+        <mesh position={[0, panelH / 2, 0]} material={mainMat} castShadow>
+          <boxGeometry args={[wW, panelH, t]} />
         </mesh>
-      )}
+        <mesh position={[0, panelH / 2, -0.001]} material={interiorMat}>
+          <boxGeometry args={[wW - 0.04, panelH - 0.04, 0.003]} />
+        </mesh>
 
-      {/* ── THE BOOK ── */}
-      <mesh position={[0, t + gap + bH / 2, 0]} castShadow>
-        <boxGeometry args={[bW, bH - 0.06, bD]} />
-        <meshPhongMaterial color="#5c1a2a" shininess={18} />
+        {/* Front text */}
+        <Text
+          position={[0, panelH * 0.55, 0.006 + t / 2]}
+          fontSize={0.1 * scale}
+          color={isEmboss ? color : textColor}
+          anchorX="center"
+          anchorY="middle"
+          letterSpacing={0.1}
+          maxWidth={wW * 0.75}
+          textAlign="center"
+          depthOffset={-2}
+          outlineWidth={isEmboss ? 0.003 : 0}
+          outlineColor={isEmboss ? '#000000' : undefined}
+          outlineOpacity={isEmboss ? 0.15 : 0}
+        >
+          Your custom text
+        </Text>
+
+        {isEmboss && (
+          <>
+            <Text
+              position={[0, panelH * 0.55 + 0.003, 0.009 + t / 2]}
+              fontSize={0.1 * scale}
+              color="#ffffff"
+              anchorX="center"
+              anchorY="middle"
+              letterSpacing={0.1}
+              maxWidth={wW * 0.75}
+              textAlign="center"
+              depthOffset={-3}
+              fillOpacity={0.18}
+            >
+              Your custom text
+            </Text>
+            <Text
+              position={[0, panelH * 0.55 - 0.003, 0.008 + t / 2]}
+              fontSize={0.1 * scale}
+              color="#000000"
+              anchorX="center"
+              anchorY="middle"
+              letterSpacing={0.1}
+              maxWidth={wW * 0.75}
+              textAlign="center"
+              depthOffset={-3}
+              fillOpacity={0.12}
+            >
+              Your custom text
+            </Text>
+          </>
+        )}
+
+        {finish === 'foil' && (
+          <mesh position={[0, panelH * 0.45, 0.006 + t / 2]} material={accentMat}>
+            <boxGeometry args={[wW * 0.5, 0.015, 0.004]} />
+          </mesh>
+        )}
+
+        {/* ── FRONT LID FLAP (L-shape extension, pivots at top of front wall) ── */}
+        <group ref={frontFlapRef} position={[0, panelH, 0]}>
+          <mesh position={[0, flapH / 2, -flapD / 2 + t / 2]} material={mainMat} castShadow>
+            <boxGeometry args={[wW, flapH, flapD]} />
+          </mesh>
+          <mesh position={[0, 0.001, -flapD / 2 + t / 2]} material={interiorMat}>
+            <boxGeometry args={[wW - 0.03, 0.003, flapD - 0.03]} />
+          </mesh>
+        </group>
+      </group>
+
+      {/* ── BACK WALL GROUP (pivots at bottom edge) ── */}
+      <group ref={backWallRef} position={[0, t, -wD / 2 + t / 2]}>
+        {/* Main back face */}
+        <mesh position={[0, panelH / 2, 0]} material={mainMat} castShadow>
+          <boxGeometry args={[wW, panelH, t]} />
+        </mesh>
+        <mesh position={[0, panelH / 2, 0.001]} material={interiorMat}>
+          <boxGeometry args={[wW - 0.04, panelH - 0.04, 0.003]} />
+        </mesh>
+
+        {/* Back text */}
+        <Text
+          position={[0, panelH * 0.55, -0.006 - t / 2]}
+          fontSize={0.1 * scale}
+          color={isEmboss ? color : textColor}
+          anchorX="center"
+          anchorY="middle"
+          letterSpacing={0.1}
+          maxWidth={wW * 0.75}
+          textAlign="center"
+          rotation={[0, Math.PI, 0]}
+          depthOffset={-2}
+          outlineWidth={isEmboss ? 0.003 : 0}
+          outlineColor={isEmboss ? '#000000' : undefined}
+          outlineOpacity={isEmboss ? 0.15 : 0}
+        >
+          Your custom text
+        </Text>
+
+        {isEmboss && (
+          <>
+            <Text
+              position={[0, panelH * 0.55 + 0.003, -0.009 - t / 2]}
+              fontSize={0.1 * scale}
+              color="#ffffff"
+              anchorX="center"
+              anchorY="middle"
+              letterSpacing={0.1}
+              maxWidth={wW * 0.75}
+              textAlign="center"
+              rotation={[0, Math.PI, 0]}
+              depthOffset={-3}
+              fillOpacity={0.18}
+            >
+              Your custom text
+            </Text>
+            <Text
+              position={[0, panelH * 0.55 - 0.003, -0.008 - t / 2]}
+              fontSize={0.1 * scale}
+              color="#000000"
+              anchorX="center"
+              anchorY="middle"
+              letterSpacing={0.1}
+              maxWidth={wW * 0.75}
+              textAlign="center"
+              rotation={[0, Math.PI, 0]}
+              depthOffset={-3}
+              fillOpacity={0.12}
+            >
+              Your custom text
+            </Text>
+          </>
+        )}
+
+        {/* ── BACK LID FLAP (L-shape extension, pivots at top of back wall) ── */}
+        <group ref={backFlapRef} position={[0, panelH, 0]}>
+          <mesh position={[0, flapH / 2, flapD / 2 - t / 2]} material={mainMat} castShadow>
+            <boxGeometry args={[wW, flapH, flapD]} />
+          </mesh>
+          <mesh position={[0, 0.001, flapD / 2 - t / 2]} material={interiorMat}>
+            <boxGeometry args={[wW - 0.03, 0.003, flapD - 0.03]} />
+          </mesh>
+        </group>
+      </group>
+
+      {/* ── LID SEAM (where flaps meet at center — fades out when opening) ── */}
+      <mesh ref={lidSeamRef} position={[0, t + panelH + flapH + 0.001, 0]}>
+        <boxGeometry args={[wW - 0.1, 0.003, 0.008]} />
+        <meshPhongMaterial
+          color={finish === 'foil' ? '#e8c97a' : '#b08d57'}
+          shininess={finish === 'foil' ? 100 : 60}
+          transparent
+        />
       </mesh>
-      {/* Pages */}
-      <mesh position={[0, t + gap + bH / 2 + 0.01, 0]}>
-        <boxGeometry args={[bW - 0.04, bH - 0.1, bD - 0.06]} />
-        <meshPhongMaterial color="#f5f0e5" shininess={5} />
+
+      {/* ── OUTER CONTAINER (stays in place when walls fall) ── */}
+      <mesh position={[0, t + (wH - t) / 2, 0]}>
+        <boxGeometry args={[wW - t * 2, wH - t, wD - t * 2]} />
+        <meshPhongMaterial color={accentColor} shininess={18} />
       </mesh>
+
+      {/* ── BOOK (lifted by straps) ── */}
+      <group ref={bookGroupRef}>
+        <mesh position={[0, t + (wH - t) / 2 + 0.01, 0]} castShadow>
+          <boxGeometry args={[wW - t * 2 - 0.04, wH - t - 0.06, wD - t * 2 - 0.06]} />
+          <meshPhongMaterial color="#5c1a2a" shininess={18} />
+        </mesh>
+        {/* Pages */}
+        <mesh position={[0, t + (wH - t) / 2 + 0.02, 0]}>
+          <boxGeometry args={[wW - t * 2 - 0.08, wH - t - 0.10, wD - t * 2 - 0.10]} />
+          <meshPhongMaterial color="#f5f0e5" shininess={5} />
+        </mesh>
+      </group>
+
+      {/* ── FABRIC STRAPS ── */}
+      <group ref={strapsGroupRef}>
+        {strapGeos.map((geo, i) => (
+          <mesh key={i} geometry={geo} material={strapMat} />
+        ))}
+      </group>
     </group>
   )
 }
 
-export default function InteractiveBox({ color = '#f5f0e8', finish = 'matte', sizeId = 'md' }) {
+export default function InteractiveBox({ color = '#f5f0e8', finish = 'matte', sizeId = 'md', variant = 'closed', accentColor = '#6b2232' }) {
   return (
     <div className="interactive-box-canvas">
       <Canvas
@@ -377,7 +502,7 @@ export default function InteractiveBox({ color = '#f5f0e8', finish = 'matte', si
         <directionalLight position={[-4, 4, -4]} intensity={0.7} />
         <directionalLight position={[0, 2, -5]} intensity={0.5} />
 
-        <PackageBox color={color} finish={finish} sizeId={sizeId} />
+        <PackageBox color={color} finish={finish} sizeId={sizeId} variant={variant} accentColor={accentColor} />
 
         <OrbitControls
           enablePan={false}

@@ -17,6 +17,15 @@ const SIZES = [
   { id: 'lg', name: 'Large', dims: '35 × 28 × 8 cm', desc: 'Coffee table books & portfolios' },
 ]
 
+const ACCENT_COLORS = [
+  { id: 'burgundy', name: 'Burgundy', hex: '#6b2232' },
+  { id: 'midnight', name: 'Midnight', hex: '#1a1a2e' },
+  { id: 'espresso', name: 'Espresso', hex: '#3c2415' },
+  { id: 'slate', name: 'Slate', hex: '#4a4a4a' },
+  { id: 'emerald', name: 'Emerald', hex: '#1b4332' },
+  { id: 'plum', name: 'Plum', hex: '#4a1942' },
+]
+
 const FINISHES = [
   { id: 'matte', name: 'Soft-Touch Matte', desc: 'Velvety smooth surface with zero sheen', css: 'finish-matte' },
   { id: 'linen', name: 'Linen Cloth', desc: 'Woven textile texture with visible cross-weave', css: 'finish-linen' },
@@ -30,8 +39,11 @@ export default function Customizer() {
   const [selectedColor, setSelectedColor] = useState('ivory')
   const [selectedSize, setSelectedSize] = useState('md')
   const [selectedFinish, setSelectedFinish] = useState('matte')
+  const [selectedVariant, setSelectedVariant] = useState('closed')
+  const [selectedAccent, setSelectedAccent] = useState('burgundy')
 
   const activeColor = COLORS.find(c => c.id === selectedColor)
+  const activeAccent = ACCENT_COLORS.find(a => a.id === selectedAccent)
   const activeSize = SIZES.find(s => s.id === selectedSize)
   const activeFinish = FINISHES.find(f => f.id === selectedFinish)
 
@@ -43,7 +55,31 @@ export default function Customizer() {
           color={activeColor.hex}
           finish={selectedFinish}
           sizeId={selectedSize}
+          variant={selectedVariant}
+          accentColor={activeAccent.hex}
         />
+
+        {/* Variant toggle */}
+        <div className="variant-toggle">
+          {['closed', 'open'].map((v) => (
+            <motion.button
+              key={v}
+              className={`variant-btn ${selectedVariant === v ? 'active' : ''}`}
+              onClick={() => setSelectedVariant(v)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              {v === 'closed' ? 'Closed' : 'Open'}
+              {selectedVariant === v && (
+                <motion.div
+                  className="variant-btn-indicator"
+                  layoutId="variantIndicator"
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                />
+              )}
+            </motion.button>
+          ))}
+        </div>
 
         <AnimatePresence mode="wait">
           <motion.p
@@ -54,7 +90,7 @@ export default function Customizer() {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.25 }}
           >
-            {activeColor.name} · {activeSize.name} · {activeFinish.name}
+            {activeColor.name} · {activeAccent.name} · {activeSize.name} · {activeFinish.name}
           </motion.p>
         </AnimatePresence>
       </div>
@@ -104,7 +140,50 @@ export default function Customizer() {
           </div>
         </motion.div>
 
-        {/* Step 2: Size */}
+        {/* Step 2: Accent Color */}
+        <motion.div
+          className="control-group"
+          initial={{ opacity: 0, x: 20 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.05 }}
+        >
+          <h3 className="control-label">
+            <span className="step-number">02</span>
+            Interior <span className="control-value">{activeAccent.name}</span>
+          </h3>
+          <div className="color-swatches">
+            {ACCENT_COLORS.map(accent => (
+              <motion.button
+                key={accent.id}
+                className={`swatch ${selectedAccent === accent.id ? 'active' : ''}`}
+                style={{ background: accent.hex }}
+                onClick={() => setSelectedAccent(accent.id)}
+                aria-label={accent.name}
+                title={accent.name}
+                whileHover={{ scale: 1.2 }}
+                whileTap={{ scale: 0.9 }}
+                transition={spring}
+              >
+                <AnimatePresence>
+                  {selectedAccent === accent.id && (
+                    <motion.svg
+                      width="14" height="14" viewBox="0 0 24 24" fill="none"
+                      initial={{ scale: 0, rotate: -90 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      exit={{ scale: 0, rotate: 90 }}
+                      transition={spring}
+                    >
+                      <path d="M5 13l4 4L19 7" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </motion.svg>
+                  )}
+                </AnimatePresence>
+              </motion.button>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Step 3: Size */}
         <motion.div
           className="control-group"
           initial={{ opacity: 0, x: 20 }}
@@ -113,7 +192,7 @@ export default function Customizer() {
           transition={{ duration: 0.5, delay: 0.1 }}
         >
           <h3 className="control-label">
-            <span className="step-number">02</span>
+            <span className="step-number">03</span>
             Size
           </h3>
           <div className="size-options">
@@ -154,7 +233,7 @@ export default function Customizer() {
           transition={{ duration: 0.5, delay: 0.2 }}
         >
           <h3 className="control-label">
-            <span className="step-number">03</span>
+            <span className="step-number">04</span>
             Finish
           </h3>
           <div className="finish-options">

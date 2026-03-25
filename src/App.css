@@ -700,6 +700,42 @@
   pointer-events: none;
 }
 
+/* Variant toggle (Closed / Open) */
+.variant-toggle {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.variant-btn {
+  position: relative;
+  padding: 0.45rem 1.2rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.variant-btn.active {
+  color: var(--color-text);
+  border-color: var(--color-accent);
+}
+
+.variant-btn-indicator {
+  position: absolute;
+  inset: -1px;
+  border-radius: 6px;
+  border: 2px solid var(--color-accent);
+  pointer-events: none;
+}
+
 .preview-label {
   margin-top: 1.5rem;
   font-size: 0.82rem;
