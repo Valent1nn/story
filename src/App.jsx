@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
-import { motion, AnimatePresence, useMotionValue, useTransform, useScroll } from 'framer-motion'
+import { motion, AnimatePresence, useTransform, useScroll } from 'framer-motion'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Customizer from './components/Customizer'
@@ -337,28 +337,7 @@ const productPhotos = [
 ]
 
 /* Slide direction variants for carousel */
-const slideVariants = {
-  enter: (direction) => ({
-    x: direction > 0 ? 400 : -400,
-    opacity: 0,
-    scale: 0.92,
-    filter: 'blur(6px)',
-  }),
-  center: {
-    x: 0,
-    opacity: 1,
-    scale: 1,
-    filter: 'blur(0px)',
-    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
-  },
-  exit: (direction) => ({
-    x: direction > 0 ? -400 : 400,
-    opacity: 0,
-    scale: 0.92,
-    filter: 'blur(6px)',
-    transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
-  }),
-}
+const coverflowTransition = { duration: 0.5, ease: [0.22, 1, 0.36, 1] }
 
 /* ── Scroll-driven text fill — characters go from faded to solid as user scrolls ── */
 function ScrollFillText({ text, em, className, trigger, start = 'top top', end = 'bottom bottom' }) {
@@ -476,9 +455,7 @@ export default function App() {
     setActivePhoto(([prev]) => [i, i > prev ? 1 : -1])
   }, [])
 
-  /* Drag-to-swipe */
-  const dragX = useMotionValue(0)
-  const dragOpacity = useTransform(dragX, [-200, 0, 200], [0.5, 1, 0.5])
+  const dragRef = useRef({ startX: 0, dragging: false })
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -687,34 +664,54 @@ export default function App() {
               <span className="carousel-counter-total">{String(productPhotos.length).padStart(2, '0')}</span>
             </div>
 
-            {/* Main viewport */}
-            <div className="carousel-viewport">
-              <AnimatePresence initial={false} custom={direction} mode="wait">
-                <motion.img
-                  key={activePhoto}
-                  src={productPhotos[activePhoto].src}
-                  alt={t.galleryCaptions[activePhoto]}
-                  className="carousel-image"
-                  custom={direction}
-                  variants={slideVariants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  drag="x"
-                  dragConstraints={{ left: 0, right: 0 }}
-                  dragElastic={0.12}
-                  style={{ x: dragX, opacity: dragOpacity }}
-                  onDragEnd={(_, info) => {
-                    if (info.offset.x < -60) paginate(1)
-                    else if (info.offset.x > 60) paginate(-1)
-                  }}
-                  draggable={false}
-                />
-              </AnimatePresence>
-
-              {/* Gradient overlays for depth */}
-              <div className="carousel-gradient carousel-gradient-left" />
-              <div className="carousel-gradient carousel-gradient-right" />
+            {/* Coverflow viewport */}
+            <div className="coverflow-viewport">
+              <div
+                className="coverflow-track"
+                onPointerDown={(e) => {
+                  dragRef.current = { startX: e.clientX, dragging: true }
+                  e.currentTarget.setPointerCapture(e.pointerId)
+                }}
+                onPointerMove={(e) => {
+                  if (!dragRef.current.dragging) return
+                  const dx = e.clientX - dragRef.current.startX
+                  if (Math.abs(dx) > 60) {
+                    paginate(dx < 0 ? 1 : -1)
+                    dragRef.current.dragging = false
+                  }
+                }}
+                onPointerUp={() => { dragRef.current.dragging = false }}
+                onPointerCancel={() => { dragRef.current.dragging = false }}
+              >
+                {productPhotos.map((photo, i) => {
+                  const offset = i - activePhoto
+                  const isActive = offset === 0
+                  const absOffset = Math.abs(offset)
+                  return (
+                    <motion.div
+                      key={i}
+                      className={`coverflow-slide ${isActive ? 'active' : ''}`}
+                      animate={{
+                        x: `${offset * 60}%`,
+                        scale: isActive ? 1 : 0.75,
+                        rotateY: offset * -15,
+                        z: isActive ? 0 : -150,
+                        opacity: absOffset > 1 ? 0 : 1,
+                      }}
+                      transition={coverflowTransition}
+                      onClick={() => !isActive && goTo(i)}
+                      style={{ zIndex: productPhotos.length - absOffset }}
+                    >
+                      <img
+                        src={photo.src}
+                        alt={t.galleryCaptions[i]}
+                        draggable={false}
+                      />
+                      {isActive && <div className="coverflow-slide-ring" />}
+                    </motion.div>
+                  )
+                })}
+              </div>
 
               {/* Nav buttons */}
               <motion.button
@@ -723,6 +720,7 @@ export default function App() {
                 aria-label="Previous photo"
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.92 }}
+                style={{ y: '-50%' }}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </motion.button>
@@ -732,12 +730,13 @@ export default function App() {
                 aria-label="Next photo"
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.92 }}
+                style={{ y: '-50%' }}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </motion.button>
             </div>
 
-            {/* Caption with animated underline */}
+            {/* Caption */}
             <div className="carousel-info">
               <AnimatePresence mode="wait">
                 <motion.p
@@ -753,27 +752,15 @@ export default function App() {
               </AnimatePresence>
             </div>
 
-            {/* Thumbnail strip */}
-            <div className="carousel-thumbs">
-              {productPhotos.map((photo, i) => (
-                <motion.button
+            {/* Dots */}
+            <div className="carousel-dots">
+              {productPhotos.map((_, i) => (
+                <button
                   key={i}
-                  className={`carousel-thumb ${i === activePhoto ? 'active' : ''}`}
+                  className={`carousel-dot ${i === activePhoto ? 'active' : ''}`}
                   onClick={() => goTo(i)}
                   aria-label={`Photo ${i + 1}`}
-                  whileHover={{ scale: 1.06 }}
-                  whileTap={{ scale: 0.95 }}
-                  layout
-                >
-                  <img src={photo.src} alt="" draggable={false} />
-                  {i === activePhoto && (
-                    <motion.div
-                      className="carousel-thumb-ring"
-                      layoutId="thumbRing"
-                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                    />
-                  )}
-                </motion.button>
+                />
               ))}
             </div>
 
