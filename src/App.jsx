@@ -360,6 +360,71 @@ const slideVariants = {
   }),
 }
 
+/* ── Scroll-driven text fill — characters go from faded to solid as user scrolls ── */
+function ScrollFillText({ text, em, className, trigger, start = 'top top', end = 'bottom bottom' }) {
+  const containerRef = useRef(null)
+
+  // Build an array of { char, isEm } segments
+  const segments = useMemo(() => {
+    const result = []
+    let remaining = text
+    if (em) {
+      const idx = remaining.indexOf(em)
+      if (idx !== -1) {
+        for (const ch of remaining.slice(0, idx)) result.push({ char: ch, isEm: false })
+        for (const ch of em) result.push({ char: ch, isEm: true })
+        for (const ch of remaining.slice(idx + em.length)) result.push({ char: ch, isEm: false })
+      } else {
+        for (const ch of remaining) result.push({ char: ch, isEm: false })
+      }
+    } else {
+      for (const ch of remaining) result.push({ char: ch, isEm: false })
+    }
+    return result
+  }, [text, em])
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+    const chars = container.querySelectorAll('.sfill-char')
+    if (!chars.length) return
+
+    const triggerEl = trigger?.current || container
+
+    const ctx = gsap.context(() => {
+      gsap.fromTo(chars,
+        { opacity: 0.12 },
+        {
+          opacity: 1,
+          stagger: 0.06,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: triggerEl,
+            start,
+            end,
+            scrub: 2,
+          },
+        }
+      )
+    })
+
+    return () => ctx.revert()
+  }, [segments, trigger, start, end])
+
+  return (
+    <span className={className} ref={containerRef}>
+      {segments.map((s, i) =>
+        s.char === '\n' ? <br key={i} /> :
+        s.isEm ? (
+          <em key={i}><span className="sfill-char">{s.char === ' ' ? '\u00A0' : s.char}</span></em>
+        ) : (
+          <span key={i} className="sfill-char">{s.char === ' ' ? '\u00A0' : s.char}</span>
+        )
+      )}
+    </span>
+  )
+}
+
 /* ── 3D tilt on hover for spec cards ── */
 function TiltCard({ children, className, ...rest }) {
   const cardRef = useRef(null)
@@ -371,7 +436,7 @@ function TiltCard({ children, className, ...rest }) {
     const cy = rect.top + rect.height / 2
     const dx = (e.clientX - cx) / (rect.width / 2)
     const dy = (e.clientY - cy) / (rect.height / 2)
-    el.style.transform = `perspective(800px) rotateY(${dx * 6}deg) rotateX(${-dy * 6}deg) scale(1.02)`
+    el.style.transform = `perspective(800px) rotateY(${dx * 8}deg) rotateX(${-dy * 8}deg) scale(1.03) translateY(-4px)`
   }
   const handleLeave = () => {
     if (cardRef.current) cardRef.current.style.transform = ''
@@ -398,6 +463,7 @@ export default function App() {
   const heroContentRef = useRef(null)
   const progressRef = useRef(null)
   const statementRef = useRef(null)
+  const closingRef = useRef(null)
 
   const paginate = useCallback((dir) => {
     setActivePhoto(([prev]) => [
@@ -447,6 +513,17 @@ export default function App() {
             end: '60% top',
             scrub: true,
           },
+        })
+      }
+
+      // -- Closing: pin the text while scroll-fill plays --
+      if (closingRef.current) {
+        ScrollTrigger.create({
+          trigger: closingRef.current,
+          start: 'top top',
+          end: 'bottom bottom',
+          pin: '.closing-pinned',
+          pinSpacing: false,
         })
       }
     })
@@ -776,16 +853,20 @@ export default function App() {
           <div className="specs-grid">
             {t.specs.map((spec, i) => (
               <TiltCard
-                className="spec-item"
+                className="spec-card"
                 key={spec.title}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, y: 40, scale: 0.95 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
                 viewport={{ once: true, margin: '-60px' }}
-                transition={{ duration: 0.6, ease, delay: i * 0.08 }}
+                transition={{ duration: 0.7, ease, delay: i * 0.1 }}
               >
-                <div className="spec-icon">{spec.icon}</div>
-                <h3 className="spec-title">{spec.title}</h3>
-                <p className="spec-desc">{spec.desc}</p>
+                <div className="spec-card-icon">
+                  <span className="spec-card-icon-symbol">{spec.icon}</span>
+                  <div className="spec-card-icon-ring" />
+                </div>
+                <h3 className="spec-card-title">{spec.title}</h3>
+                <p className="spec-card-desc">{spec.desc}</p>
+                <div className="spec-card-shine" />
               </TiltCard>
             ))}
           </div>
@@ -794,18 +875,31 @@ export default function App() {
 
 
       {/* ===== CLOSING ===== */}
-      <section className="section closing-section">
+      <section className="section closing-section" ref={closingRef}>
         <Sparkle size={26} top="12%" left="10%" delay={0.3} />
         <Sparkle size={16} bottom="18%" right="12%" delay={0.6} />
         <Sparkle size={12} top="30%" right="6%" delay={0.8} />
-        <div className="section-inner centered-text">
-          <motion.p {...blurUp()} className="section-eyebrow">{t.closingEyebrow}</motion.p>
-          <motion.h2 {...blurUp(0.1)} className="section-title-xl">
-            {t.closingTitle1}<br />{t.closingTitleConnector}<em>{t.closingTitle2}</em>
-          </motion.h2>
-          <motion.p {...blurUp(0.2)} className="section-body">
-            {t.closingBody}
-          </motion.p>
+        <div className="closing-pinned">
+          <div className="section-inner centered-text">
+            <p className="section-eyebrow">{t.closingEyebrow}</p>
+            <h2 className="section-title-xl scroll-fill-heading">
+              <ScrollFillText
+                text={`${t.closingTitle1}\n${t.closingTitleConnector}${t.closingTitle2}`}
+                em={t.closingTitle2}
+                trigger={closingRef}
+                start="top top"
+                end="60% bottom"
+              />
+            </h2>
+            <p className="section-body scroll-fill-body">
+              <ScrollFillText
+                text={t.closingBody}
+                trigger={closingRef}
+                start="35% top"
+                end="85% bottom"
+              />
+            </p>
+          </div>
         </div>
       </section>
 
