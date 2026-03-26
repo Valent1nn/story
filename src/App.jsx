@@ -330,10 +330,10 @@ function SectionDivider() {
 
 /* ── Product photos carousel ── */
 const productPhotos = [
-  { src: 'https://images.unsplash.com/photo-1586075010882-3a0b4f7462a0?w=800&h=600&fit=crop' },
-  { src: 'https://images.unsplash.com/photo-1603974372039-adc49044b6bd?w=800&h=600&fit=crop' },
-  { src: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=800&h=600&fit=crop' },
-  { src: 'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=800&h=600&fit=crop' },
+  { src: 'https://4kwallpapers.com/images/wallpapers/corgi-puppy-happy-3840x2160-13252.jpg' },
+  { src: 'https://cdn.thegreatprojects.com/thegreatprojects/uploads/43965b5fa1ae51283b083e1065d4cf55.jpg?format=jpg&width=&height=' },
+  { src: 'https://c.ndtvimg.com/gws/ms/cutest-animals-in-the-world/assets/6.jpeg?1724137933' },
+  { src: 'https://www.pixelstalk.net/wp-content/uploads/images6/Cute-Bunny-Backgrounds-HD.jpg' },
 ]
 
 /* Slide direction variants for carousel */
