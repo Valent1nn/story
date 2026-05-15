@@ -493,7 +493,7 @@ function PackageBox({ color, finish, sizeId, variant = 'closed', accentColor = '
 
 export default function InteractiveBox({ color = '#f5f0e8', finish = 'matte', sizeId = 'md', variant = 'closed', accentColor = '#6b2232', strapColor = '#c9a96e' }) {
   return (
-    <div className="interactive-box-canvas">
+    <div className="interactive-box-canvas" data-lenis-prevent>
       <Canvas
         camera={{ position: [3.2, 2.2, 4.0], fov: 32 }}
         dpr={[1, 1.5]}

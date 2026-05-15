@@ -65,25 +65,14 @@ const SPARKLE_PARTICLES = Array.from({ length: 6 }, (_, i) => {
 })
 
 /* ── Sparkle / decorative star component ── */
-/* Stars gently fade out and back in periodically, slow idle rotation */
-function Sparkle({ size = 20, top, left, right, bottom }) {
+/* Stars float, pulse, and twinkle continuously */
+function Sparkle({ size = 20, top, left, right, bottom, delay = 0 }) {
   const [isHovered, setIsHovered] = useState(false)
-  const [dimmed, setDimmed] = useState(false)
 
-  useEffect(() => {
-    // Gentle fade out/in cycle (random 6–14s intervals)
-    const schedule = () => {
-      const interval = 6000 + Math.random() * 8000
-      return setTimeout(() => {
-        setDimmed(true)
-        // Fade back in after 1.5–2.5s
-        setTimeout(() => setDimmed(false), 1500 + Math.random() * 1000)
-        timerId = schedule()
-      }, interval)
-    }
-    let timerId = schedule()
-    return () => clearTimeout(timerId)
-  }, [])
+  // Each star gets unique animation params based on delay
+  const floatDuration = 4 + delay * 2
+  const rotateDuration = 8 + delay * 3
+  const pulseDuration = 2 + delay * 0.8
 
   return (
     <motion.div
@@ -91,6 +80,19 @@ function Sparkle({ size = 20, top, left, right, bottom }) {
       style={{ position: 'absolute', top, left, right, bottom, pointerEvents: 'auto', cursor: 'pointer', width: size + 16, height: size + 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
+      initial={{ opacity: 0, scale: 0 }}
+      animate={{
+        opacity: 1,
+        scale: 1,
+        y: [0, -12, 0, 8, 0],
+        x: [0, 6, 0, -6, 0],
+      }}
+      transition={{
+        opacity: { duration: 0.8, delay: delay * 0.3 },
+        scale: { duration: 0.8, delay: delay * 0.3 },
+        y: { duration: floatDuration, repeat: Infinity, ease: 'easeInOut', delay: delay * 0.5 },
+        x: { duration: floatDuration * 1.3, repeat: Infinity, ease: 'easeInOut', delay: delay * 0.5 },
+      }}
     >
       {/* Particle burst on hover */}
       <AnimatePresence>
@@ -118,27 +120,32 @@ function Sparkle({ size = 20, top, left, right, bottom }) {
         transition={{ duration: 0.4 }}
       />
 
-      {/* Main star — stays mounted, smoothly fades */}
+      {/* Main star — continuous rotation + pulse */}
       <motion.svg
         className="sparkle"
         width={size}
         height={size}
         viewBox="0 0 24 24"
         fill="none"
-        initial={{ opacity: 0, scale: 0 }}
-        whileInView={{ opacity: 1, scale: 1 }}
-        viewport={{ once: true }}
-        animate={dimmed ? { opacity: 0.08, scale: 0.5 } : { opacity: 1, scale: 1 }}
-        transition={{ duration: 1.2, ease: [0.25, 0.1, 0.25, 1] }}
-        whileHover={{ scale: 1.5, rotate: 20 }}
+        animate={{
+          rotate: [0, 360],
+          scale: [1, 1.2, 1, 0.85, 1],
+          opacity: [0.7, 1, 0.7, 0.9, 0.7],
+        }}
+        transition={{
+          rotate: { duration: rotateDuration, repeat: Infinity, ease: 'linear' },
+          scale: { duration: pulseDuration, repeat: Infinity, ease: 'easeInOut' },
+          opacity: { duration: pulseDuration, repeat: Infinity, ease: 'easeInOut' },
+        }}
+        whileHover={{ scale: 1.8, rotate: 45 }}
       >
         <path
           d="M12 2L13.09 8.26L18 4L14.74 9.91L21 12L14.74 14.09L18 20L13.09 15.74L12 22L10.91 15.74L6 20L9.26 14.09L3 12L9.26 9.91L6 4L10.91 8.26L12 2Z"
           fill="var(--color-accent)"
-          fillOpacity="0.55"
+          fillOpacity="0.65"
           stroke="var(--color-accent)"
           strokeWidth="0.5"
-          strokeOpacity="0.3"
+          strokeOpacity="0.4"
         />
       </motion.svg>
     </motion.div>
@@ -574,6 +581,12 @@ export default function App() {
         <Sparkle size={14} top="35%" left="25%" delay={0.5} />
         <Sparkle size={12} top="14%" right="28%" delay={1.8} />
         <Sparkle size={20} bottom="35%" right="22%" delay={0.9} />
+        <Sparkle size={10} top="10%" left="35%" delay={2.0} />
+        <Sparkle size={24} bottom="12%" left="22%" delay={0.4} />
+        <Sparkle size={15} top="42%" right="8%" delay={1.3} />
+        <Sparkle size={11} bottom="40%" right="32%" delay={1.7} />
+        <Sparkle size={13} top="8%" right="42%" delay={0.6} />
+        <Sparkle size={9} bottom="15%" right="5%" delay={2.2} />
         <motion.div
           className="hero-content"
           ref={heroContentRef}
