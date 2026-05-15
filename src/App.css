@@ -1405,25 +1405,21 @@
   z-index: 1;
   overflow: hidden;
   pointer-events: auto;
+  contain: layout style;
 }
 
 .filing {
   position: absolute;
-  width: 28px;
-  height: 3px;
-  background: linear-gradient(90deg,
-    transparent 0%,
-    var(--color-accent) 20%,
-    var(--color-accent) 80%,
-    transparent 100%
-  );
-  border-radius: 1.5px;
+  width: 24px;
+  height: 2.5px;
+  background: var(--color-accent);
+  border-radius: 1.25px 1.25px 1.25px 1.25px;
   transform-origin: center center;
   transition: none;
   opacity: 0.28;
   pointer-events: none;
-  box-shadow: 0 0 6px rgba(176, 141, 87, 0.25);
-  clip-path: ellipse(50% 50% at 50% 50%);
+  will-change: transform, opacity;
+  contain: layout style size;
 }
 
 .magnetic-filings-hint {

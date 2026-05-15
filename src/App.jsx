@@ -153,8 +153,8 @@ function Sparkle({ size = 20, top, left, right, bottom, delay = 0 }) {
 }
 
 /* ── Magnetic filings grid — rotates toward cursor ── */
-const FILING_ROWS = 12
-const FILING_COLS = 20
+const FILING_ROWS = 8
+const FILING_COLS = 14
 
 function MagneticFilings({ lang }) {
   const containerRef = useRef(null)
