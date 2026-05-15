@@ -102,7 +102,7 @@ function createLinenTexture(baseColor) {
 const STRAP_WIDTH = 0.125
 const STRAP_SEGS = 10
 
-function PackageBox({ color, finish, sizeId, variant = 'closed', accentColor = '#6b2232' }) {
+function PackageBox({ color, finish, sizeId, variant = 'closed', accentColor = '#6b2232', strapColor = '#c9a96e' }) {
   const groupRef = useRef()
   const [flipped, setFlipped] = useState(false)
 
@@ -147,18 +147,18 @@ function PackageBox({ color, finish, sizeId, variant = 'closed', accentColor = '
   const bookGroupRef = useRef()
   const strapsGroupRef = useRef()
 
-  // Strap geometries (2 ribbons: 1 front-wall, 1 back-wall)
+  // Strap geometries (4 ribbons: 2 front-wall, 2 back-wall)
   const strapGeos = useMemo(() =>
-    Array.from({ length: 2 }, () => new THREE.PlaneGeometry(STRAP_WIDTH, 1, 1, STRAP_SEGS)), [])
+    Array.from({ length: 4 }, () => new THREE.PlaneGeometry(STRAP_WIDTH, 1, 1, STRAP_SEGS)), [])
   const strapMat = useMemo(() => new THREE.MeshPhongMaterial({
-    color: '#c9a96e', shininess: 35, side: THREE.DoubleSide,
-  }), [])
+    color: strapColor, shininess: 35, side: THREE.DoubleSide,
+  }), [strapColor])
 
   // Dimensions (before useFrame so the callback can reference them)
   const t = 0.04
   const bW = 2 * scale
   const bH = 1.5 * scale
-  const bD = 0.38 * scale
+  const bD = 0.15 * scale
   const gap = 0.04
 
   const wW = bW + (gap + t) * 2
@@ -221,9 +221,12 @@ function PackageBox({ color, finish, sizeId, variant = 'closed', accentColor = '
       const strapWallH = panelH * 0.5
       const innerOff = t / 2 + 0.005
       const bookFaceZ = (wD - t * 2) / 2 - 0.005
+      const strapSpacing = wW * 0.18
       const strapConfigs = [
-        { x: 0, zSign: 1 },
-        { x: 0, zSign: -1 },
+        { x: -strapSpacing, zSign: 1 },
+        { x:  strapSpacing, zSign: 1 },
+        { x: -strapSpacing, zSign: -1 },
+        { x:  strapSpacing, zSign: -1 },
       ]
 
       strapsGroupRef.current.children.forEach((mesh, i) => {
@@ -488,11 +491,11 @@ function PackageBox({ color, finish, sizeId, variant = 'closed', accentColor = '
   )
 }
 
-export default function InteractiveBox({ color = '#f5f0e8', finish = 'matte', sizeId = 'md', variant = 'closed', accentColor = '#6b2232' }) {
+export default function InteractiveBox({ color = '#f5f0e8', finish = 'matte', sizeId = 'md', variant = 'closed', accentColor = '#6b2232', strapColor = '#c9a96e' }) {
   return (
     <div className="interactive-box-canvas">
       <Canvas
-        camera={{ position: [2.5, 1.8, 3.2], fov: 32 }}
+        camera={{ position: [3.2, 2.2, 4.0], fov: 32 }}
         dpr={[1, 1.5]}
         gl={{ antialias: true, alpha: true, powerPreference: 'low-power' }}
         style={{ background: 'transparent' }}
@@ -502,7 +505,7 @@ export default function InteractiveBox({ color = '#f5f0e8', finish = 'matte', si
         <directionalLight position={[-4, 4, -4]} intensity={0.7} />
         <directionalLight position={[0, 2, -5]} intensity={0.5} />
 
-        <PackageBox color={color} finish={finish} sizeId={sizeId} variant={variant} accentColor={accentColor} />
+        <PackageBox color={color} finish={finish} sizeId={sizeId} variant={variant} accentColor={accentColor} strapColor={strapColor} />
 
         <OrbitControls
           enablePan={false}

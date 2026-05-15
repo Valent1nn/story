@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence, useTransform, useScroll } from 'framer-motion'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import Lenis from 'lenis'
 import Customizer from './components/Customizer'
 import translations from './translations'
 import './App.css'
@@ -171,8 +172,9 @@ function MagneticFilings({ lang }) {
             const fy = parseFloat(el.dataset.fy)
             const angle = Math.atan2(my - fy, mx - fx) * (180 / Math.PI)
             const dist = Math.hypot(mx - fx, my - fy)
-            const scale = Math.min(1.5, 1 + 40 / (dist + 60))
+            const scale = Math.min(2.2, 1 + 80 / (dist + 40))
             el.style.transform = `rotate(${angle}deg) scaleX(${scale})`
+            el.style.opacity = Math.min(0.6, 0.28 + 40 / (dist + 80))
           })
           rafRef.current = null
         })
@@ -182,7 +184,11 @@ function MagneticFilings({ lang }) {
     const handleLeave = () => {
       filingsRef.current.forEach((el) => {
         if (!el) return
+        el.style.transition = 'transform 0.8s cubic-bezier(0.25,0.1,0.25,1), opacity 0.8s ease'
         el.style.transform = 'rotate(0deg) scaleX(1)'
+        el.style.opacity = '0.28'
+        // Clear transition after it completes so mousemove stays snappy
+        setTimeout(() => { if (el) el.style.transition = 'none' }, 800)
       })
     }
 
@@ -339,67 +345,72 @@ const productPhotos = [
 /* Slide direction variants for carousel */
 const coverflowTransition = { duration: 0.5, ease: [0.22, 1, 0.36, 1] }
 
-/* ── Scroll-driven text fill — characters go from faded to solid as user scrolls ── */
-function ScrollFillText({ text, em, className, trigger, start = 'top top', end = 'bottom bottom' }) {
-  const containerRef = useRef(null)
+/* ── Scroll-driven text fill — line by line, clip-path reveal ── */
+function ScrollFillLine({ children, scrollYProgress, startAt, endAt }) {
+  const clipPath = useTransform(scrollYProgress, [startAt, endAt], ['inset(0 100% 0 0)', 'inset(0 0% 0 0)'])
+  return (
+    <span className="sfill-line-wrap">
+      <span className="sfill-line-bg" aria-hidden="true">
+        {children}
+      </span>
+      <motion.span className="sfill-line-fg" style={{ clipPath }}>
+        {children}
+      </motion.span>
+    </span>
+  )
+}
 
-  // Build an array of { char, isEm } segments
-  const segments = useMemo(() => {
-    const result = []
-    let remaining = text
-    if (em) {
-      const idx = remaining.indexOf(em)
-      if (idx !== -1) {
-        for (const ch of remaining.slice(0, idx)) result.push({ char: ch, isEm: false })
-        for (const ch of em) result.push({ char: ch, isEm: true })
-        for (const ch of remaining.slice(idx + em.length)) result.push({ char: ch, isEm: false })
-      } else {
-        for (const ch of remaining) result.push({ char: ch, isEm: false })
-      }
+function ScrollFillText({ text, em, className, trigger, offset }) {
+  const containerRef = useRef(null)
+  const { scrollYProgress } = useScroll({
+    target: trigger || containerRef,
+    offset: offset || ['start start', 'end start'],
+  })
+
+  // Split text into lines: use \n if present, otherwise split by ' — ' or into ~equal halves
+  const lines = useMemo(() => {
+    let rawLines
+    if (text.includes('\n')) {
+      rawLines = text.split('\n')
+    } else if (text.includes(' — ')) {
+      rawLines = text.split(' — ').map((s, i, arr) => i < arr.length - 1 ? s + ' —' : s)
     } else {
-      for (const ch of remaining) result.push({ char: ch, isEm: false })
+      // Split roughly in half by words
+      const words = text.split(' ')
+      const mid = Math.ceil(words.length / 2)
+      rawLines = [words.slice(0, mid).join(' '), words.slice(mid).join(' ')]
     }
-    return result
+    return rawLines.map(line => {
+      if (em && line.includes(em)) {
+        const idx = line.indexOf(em)
+        return (
+          <>
+            {line.slice(0, idx)}
+            <em>{em}</em>
+            {line.slice(idx + em.length)}
+          </>
+        )
+      }
+      return line
+    })
   }, [text, em])
 
-  useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
-    const chars = container.querySelectorAll('.sfill-char')
-    if (!chars.length) return
-
-    const triggerEl = trigger?.current || container
-
-    const ctx = gsap.context(() => {
-      gsap.fromTo(chars,
-        { opacity: 0.12 },
-        {
-          opacity: 1,
-          stagger: 0.06,
-          ease: 'none',
-          scrollTrigger: {
-            trigger: triggerEl,
-            start,
-            end,
-            scrub: 2,
-          },
-        }
-      )
-    })
-
-    return () => ctx.revert()
-  }, [segments, trigger, start, end])
+  const lineCount = lines.length
 
   return (
-    <span className={className} ref={containerRef}>
-      {segments.map((s, i) =>
-        s.char === '\n' ? <br key={i} /> :
-        s.isEm ? (
-          <em key={i}><span className="sfill-char">{s.char === ' ' ? '\u00A0' : s.char}</span></em>
-        ) : (
-          <span key={i} className="sfill-char">{s.char === ' ' ? '\u00A0' : s.char}</span>
+    <span className={`sfill-container ${className || ''}`} ref={containerRef}>
+      {lines.map((line, i) => {
+        const startAt = i / lineCount
+        const endAt = (i + 1) / lineCount
+        return (
+          <span key={i}>
+            <ScrollFillLine scrollYProgress={scrollYProgress} startAt={startAt} endAt={endAt}>
+              {line}
+            </ScrollFillLine>
+            {i < lineCount - 1 && <br />}
+          </span>
         )
-      )}
+      })}
     </span>
   )
 }
@@ -456,6 +467,25 @@ export default function App() {
   }, [])
 
   const dragRef = useRef({ startX: 0, dragging: false })
+
+  /* ── Lenis smooth scroll ── */
+  useEffect(() => {
+    const lenis = new Lenis({
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      smoothWheel: true,
+    })
+
+    // Sync Lenis with GSAP ScrollTrigger
+    lenis.on('scroll', ScrollTrigger.update)
+    gsap.ticker.add((time) => lenis.raf(time * 1000))
+    gsap.ticker.lagSmoothing(0)
+
+    return () => {
+      lenis.destroy()
+      gsap.ticker.remove(lenis.raf)
+    }
+  }, [])
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -874,16 +904,14 @@ export default function App() {
                 text={`${t.closingTitle1}\n${t.closingTitleConnector}${t.closingTitle2}`}
                 em={t.closingTitle2}
                 trigger={closingRef}
-                start="top top"
-                end="60% bottom"
+                offset={['start start', '35% start']}
               />
             </h2>
             <p className="section-body scroll-fill-body">
               <ScrollFillText
                 text={t.closingBody}
                 trigger={closingRef}
-                start="35% top"
-                end="85% bottom"
+                offset={['35% start', '65% start']}
               />
             </p>
           </div>
