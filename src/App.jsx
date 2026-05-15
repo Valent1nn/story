@@ -869,7 +869,7 @@ export default function App() {
               {t.customizeBody}
             </motion.p>
           </div>
-          <motion.div {...scaleUp(0.25)}>
+          <motion.div {...fadeUp(0.25)}>
             <Customizer lang={lang} />
           </motion.div>
         </div>
