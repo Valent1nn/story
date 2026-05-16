@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import InteractiveBox from './InteractiveBox'
+import InteractiveBook from './InteractiveBook'
 import translations from '../translations'
 
 // Page count options: 96 to 400, step 4
@@ -158,6 +159,47 @@ export default function Customizer({ lang }) {
   // 3D preview variant
   const [selectedVariant, setSelectedVariant] = useState('closed')
 
+  // Preview mode: 'packaging' or 'book'
+  const [previewMode, setPreviewMode] = useState('packaging')
+
+  // Book 3D variant (open/closed) — mirrors packaging variant toggle
+  const [bookVariant, setBookVariant] = useState('closed')
+
+  // Temporary zoom-to-page when paper/font/print changes
+  const [zoomToPage, setZoomToPage] = useState(false)
+  const zoomTimeoutRef = useRef(null)
+  const prevPaperRef = useRef(paperType)
+  const prevFontRef = useRef(font)
+  const prevPrintRef = useRef(printType)
+
+  useEffect(() => {
+    // Only trigger if a value actually changed (not on mount)
+    if (
+      previewMode !== 'book' ||
+      (prevPaperRef.current === paperType && prevFontRef.current === font && prevPrintRef.current === printType)
+    ) {
+      prevPaperRef.current = paperType
+      prevFontRef.current = font
+      prevPrintRef.current = printType
+      return
+    }
+    prevPaperRef.current = paperType
+    prevFontRef.current = font
+    prevPrintRef.current = printType
+
+    // Open book + zoom to page on paper/font/print change
+    const raf = requestAnimationFrame(() => {
+      setBookVariant('open')
+      setZoomToPage(true)
+      if (zoomTimeoutRef.current) clearTimeout(zoomTimeoutRef.current)
+      zoomTimeoutRef.current = setTimeout(() => setZoomToPage(false), 3000)
+    })
+    return () => {
+      cancelAnimationFrame(raf)
+      if (zoomTimeoutRef.current) clearTimeout(zoomTimeoutRef.current)
+    }
+  }, [paperType, font, printType, previewMode])
+
   // Derived values for 3D preview
   const boxColor = PACKAGING_COLORS.find(c => c.id === packagingColor1)?.hex || '#f5f0e8'
   const accentColor = PACKAGING_COLORS.find(c => c.id === packagingColor2)?.hex || '#6b2232'
@@ -165,40 +207,109 @@ export default function Customizer({ lang }) {
 
   const sizeId = bookFormat === 'pocket' ? 'sm' : bookFormat === 'landscape' ? 'lg' : 'md'
 
+  // Font family for 3D book text
+  const fontFamilyMap = { garamond: "'EB Garamond', serif", minion: "'Georgia', serif", poppins: "'Poppins', sans-serif" }
+  const bookFontFamily = fontFamilyMap[font] || "'EB Garamond', serif"
+
   return (
     <div className="customizer">
       {/* Interactive 3D preview */}
       <div className="customizer-preview">
-        <InteractiveBox
-          color={boxColor}
-          finish={selectedFinish}
-          sizeId={sizeId}
-          variant={selectedVariant}
-          accentColor={accentColor}
-          strapColor={strapHex}
-        />
-
-        {/* Variant toggle */}
-        <div className="variant-toggle">
-          {['closed', 'open'].map((v) => (
+        {/* Preview mode toggle */}
+        <div className="preview-mode-toggle">
+          {['packaging', 'book'].map((mode) => (
             <motion.button
-              key={v}
-              className={`variant-btn ${selectedVariant === v ? 'active' : ''}`}
-              onClick={() => setSelectedVariant(v)}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              key={mode}
+              className={`preview-mode-btn ${previewMode === mode ? 'active' : ''}`}
+              onClick={() => setPreviewMode(mode)}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
             >
-              {v === 'closed' ? t.custVariantClosed : t.custVariantOpen}
-              {selectedVariant === v && (
+              {mode === 'packaging' ? t.cfgPreviewPackaging : t.cfgPreviewBook}
+              {previewMode === mode && (
                 <motion.div
-                  className="variant-btn-indicator"
-                  layoutId="variantIndicator"
+                  className="preview-mode-indicator"
+                  layoutId="previewModeIndicator"
                   transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 />
               )}
             </motion.button>
           ))}
         </div>
+
+        <AnimatePresence mode="wait">
+          {previewMode === 'packaging' ? (
+            <motion.div
+              key="packaging"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              style={{ width: '100%' }}
+            >
+              <InteractiveBox
+                color={boxColor}
+                finish={selectedFinish}
+                sizeId={sizeId}
+                variant={selectedVariant}
+                accentColor={accentColor}
+                strapColor={strapHex}
+              />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="book"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              style={{ width: '100%' }}
+            >
+              <InteractiveBook
+                coverColor={accentColor}
+                paperColor={paperType}
+                fontFamily={bookFontFamily}
+                coverMaterial={coverMaterial}
+                coverText={coverText}
+                isOpen={bookVariant === 'open'}
+                zoomToPage={zoomToPage}
+                sizeId={sizeId}
+                pageCount={pageCount}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Variant toggle (packaging or book) */}
+        <motion.div
+          className="variant-toggle"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          {['closed', 'open'].map((v) => {
+            const current = previewMode === 'packaging' ? selectedVariant : bookVariant
+            const setter = previewMode === 'packaging' ? setSelectedVariant : setBookVariant
+            return (
+              <motion.button
+                key={v}
+                className={`variant-btn ${current === v ? 'active' : ''}`}
+                onClick={() => setter(v)}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                {v === 'closed' ? t.custVariantClosed : t.custVariantOpen}
+                {current === v && (
+                  <motion.div
+                    className="variant-btn-indicator"
+                    layoutId="variantIndicator"
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  />
+                )}
+              </motion.button>
+            )
+          })}
+        </motion.div>
       </div>
 
       {/* Controls */}

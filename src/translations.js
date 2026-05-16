@@ -98,6 +98,8 @@ const translations = {
     // Customizer
     custVariantClosed: 'Closed',
     custVariantOpen: 'Open',
+    cfgPreviewPackaging: 'Packaging',
+    cfgPreviewBook: 'Book',
 
     // Configurator Steps
     cfgStep1Title: 'Book Format & Volume',
@@ -268,6 +270,8 @@ const translations = {
     // Customizer
     custVariantClosed: 'Închis',
     custVariantOpen: 'Deschis',
+    cfgPreviewPackaging: 'Ambalaj',
+    cfgPreviewBook: 'Carte',
 
     // Configurator Steps
     cfgStep1Title: 'Formatul și volumul cărții',

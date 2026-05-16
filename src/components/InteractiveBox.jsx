@@ -515,7 +515,7 @@ export default function InteractiveBox({ color = '#f5f0e8', finish = 'matte', si
           minPolarAngle={Math.PI / 6}
           maxPolarAngle={Math.PI / 2.2}
           autoRotate
-          autoRotateSpeed={0.8}
+          autoRotateSpeed={-1.2}
         />
       </Canvas>
       <p className="interactive-box-hint">Drag to rotate · Scroll to zoom · Double-click to flip</p>
