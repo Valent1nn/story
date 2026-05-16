@@ -359,7 +359,7 @@ export default function InteractiveBook({
           minDistance={1}
           maxDistance={6}
           autoRotate={!isOpen}
-          autoRotateSpeed={-1.2}
+          autoRotateSpeed={-0.7}
           target={[0.4, 0, 0]}
         />
       </Canvas>
