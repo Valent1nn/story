@@ -149,11 +149,74 @@ function CameraZoom({ zoomToPage, controlsRef }) {
 }
 
 /* ── Main Book ── */
+const FLIP_PAGES = 5
+
+/* ── Curved flipping page — front/back faces, spine curl, flip curl ── */
+function CurvedPage({ pageW, pageH, frontMaterial, backMaterial, flipProgressArr, index }) {
+  const origPositions = useRef(null)
+  const segX = 16
+
+  // Shared geometry — deforming it updates both front and back meshes
+  const geo = useMemo(() => new THREE.PlaneGeometry(pageW, pageH, segX, 1), [pageW, pageH])
+
+  useEffect(() => {
+    origPositions.current = new Float32Array(geo.attributes.position.array)
+  }, [geo])
+
+  useFrame(() => {
+    if (!origPositions.current) return
+
+    const fp = flipProgressArr.current[index]
+    const pos = geo.attributes.position
+    const orig = origPositions.current
+
+    // Flip curl peaks at mid-flip
+    const flipCurl = Math.sin(fp * Math.PI) * 0.35
+
+    // Gentle resting curve only when page is fully open (fp > 0.9)
+    // At this point the page is rotated ~135° so Z points away from cover, no protrusion
+    const restT = Math.max(0, (fp - 0.9) / 0.1) // 0 until fp=0.9, then ramps to 1
+    const restCurl = restT * restT * 0.12
+
+    for (let i = 0; i < pos.count; i++) {
+      const ox = orig[i * 3]
+      const oy = orig[i * 3 + 1]
+
+      // t = 0 at spine (binding edge), t = 1 at free edge
+      const t = (ox / pageW) + 0.5
+
+      // Binding curve: steep rise near spine simulating paper bending over the binding,
+      // then gradual quadratic arch toward the free edge.
+      // At t=0 (spine): both components = 0 → page is anchored at binding.
+      const bindingRise = Math.sin(Math.min(t / 0.12, 1) * Math.PI * 0.5) * 0.15
+      const bodyArch = t * t * 0.85
+      const flipZ = (bindingRise + bodyArch) * flipCurl * pageW * 0.5
+
+      // Resting curve — lifts the free (outer) edge when page is open
+      const outerLift = t * t * t * restCurl * pageW * 0.8
+
+      pos.array[i * 3] = ox
+      pos.array[i * 3 + 1] = oy
+      pos.array[i * 3 + 2] = flipZ + outerLift
+    }
+
+    pos.needsUpdate = true
+    geo.computeVertexNormals()
+  })
+
+  return (
+    <group position={[pageW / 2, pageH / 2, 0]}>
+      <mesh geometry={geo} material={frontMaterial} />
+      <mesh geometry={geo} material={backMaterial} />
+    </group>
+  )
+}
+
 function Book({ coverColor, paperColor, fontFamily, coverMaterial, coverText, isOpen, sizeId, pageCount }) {
   const groupRef = useRef()
   const coverFrontRef = useRef()
-  const openRef = useRef(0)
-  const targetOpen = isOpen ? 1 : 0
+  const flipPageRefs = useRef([])
+  const progressRef = useRef(0) // 0 = closed, 1 = fully open with pages flipped
 
   // Page count drives book thickness (96→thin, 400→thick)
   const depthScale = 0.6 + ((pageCount - 96) / (400 - 96)) * 0.8
@@ -199,7 +262,28 @@ function Book({ coverColor, paperColor, fontFamily, coverMaterial, coverText, is
   const pageW = bW - pageInset * 2
   const pageH = bH - pageInset * 2
 
-  // Page textures with rendered text
+  // Flip page texts — each page shows different content
+  const flipPageTexts = useMemo(() => [
+    'Într-o dimineață de vară, soarele își arunca razele peste câmpiile nesfârșite. Copiii alergau desculți prin iarba umedă de rouă, râzând și strigând de bucurie.',
+    'Casa bunicilor era mică, dar plină de căldură. Mirosul de pâine proaspătă se amesteca cu parfumul florilor de tei care intrau pe fereastră.',
+    'Seara, ne adunam cu toții în jurul mesei. Bunica povestea despre vremurile de demult, iar noi ascultam fascinați, cu ochii mari și sufletul deschis.',
+    'Vara trecea repede, ca un vis frumos. Fiecare zi aducea o nouă aventură, o nouă descoperire, o nouă amintire de păstrat pentru totdeauna.',
+    'Și așa, între joacă și povești, între câmpuri și livezi, am crescut cu dragostea pământului în suflet și cu amintirile copilăriei în inimă.',
+  ], [])
+
+  // Front materials — text on front face only (FrontSide)
+  const flipFrontMats = useMemo(() =>
+    flipPageTexts.map(text => {
+      const tex = createTextTexture(text, fontFamily, textColor, paperColorHex, pageW, pageH)
+      return new THREE.MeshBasicMaterial({ map: tex, side: THREE.FrontSide })
+    }),
+    [flipPageTexts, fontFamily, textColor, paperColorHex, pageW, pageH])
+
+  // Back material — plain paper on back face (BackSide), shared by all flip pages
+  const flipBackMat = useMemo(() =>
+    new THREE.MeshPhongMaterial({ color: paperColorHex, shininess: 3, side: THREE.BackSide }), [paperColorHex])
+
+  // Page textures with rendered text (final page after all flips)
   const pageOneText = 'Am v\u0103zut lumina zilei la 10 iulie 1949, \u00eentr-un stog de paie, pe c\u00e2mpurile colhozului \u201ePobeda\u201d, din satul S\u0103rata Nou\u0103, raionul F\u0103le\u0219ti. V\u0103 ve\u021bi pune \u00eentrebarea: \u201eDe ce pe c\u00e2mp? De ce \u00eentr-o c\u0103pi\u021b\u0103 de paie?\u201d Era vremea seceri\u0219ului. Nu era timp de pierdut. Fiecare clip\u0103 era pre\u021bioas\u0103. Era nevoie s\u0103 recolteze gr\u00e2ul c\u00e2t \u00eenc\u0103 era timp frumos, f\u0103r\u0103 ploaie, c\u0103ci dac\u0103 ploua, gr\u00e2ul era pierdut. Maturii, to\u021bi ca unul, se aflau pe c\u00e2mp. \u0218i mama era acolo. Cu burta la gur\u0103, pu\u021bin folos de la ea, dar m\u0103car \u021binea gura sacului, ca altcineva s\u0103 toarne gr\u00e2ul, \u0219i tot \u00eenainte era. Dup\u0103 socoteala mamei, mai aveam p\u00e2n\u0103 la na\u0219tere vreo dou\u0103 s\u0103pt\u0103m\u00e2ni, dar eu, dornic\u0103 s\u0103 v\u0103d soarele, m-am gr\u0103bit pu\u021bin. C\u00e2nd au apucat-o durerile na\u0219terii, n-a mai reu\u0219it s\u0103 ajung\u0103 acas\u0103. O vecin\u0103 avea pe d\u00e2nsa ..'
   const pageOneTitle = 'Primele amintiri'
   const pageTwoText = 'Each morning, she would sit beneath the old oak tree, its branches heavy with memory, and weave tales that made the wind pause to listen. The words flowed like water.'
@@ -232,7 +316,6 @@ function Book({ coverColor, paperColor, fontFamily, coverMaterial, coverText, is
     ctx.fillStyle = '#d4af37'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    // Word wrap title
     const words = coverText.toUpperCase().split(' ')
     const lines = []
     let line = ''
@@ -252,13 +335,52 @@ function Book({ coverColor, paperColor, fontFamily, coverMaterial, coverText, is
     return new THREE.CanvasTexture(canvas)
   }, [coverText])
 
-  // Animate open/close
+  // Track per-page flip progress for curving
+  const flipProgressArr = useRef(new Float32Array(FLIP_PAGES))
+
+  // Animation timeline:
+  // progress 0.00–0.25: cover opens
+  // progress 0.25–0.90: pages flip sequentially
+  const coverMaxAngle = 140 * Math.PI / 180
+  const pageMaxAngle = 135 * Math.PI / 180 // pages never exceed cover
+
   useFrame((_, delta) => {
-    openRef.current += (targetOpen - openRef.current) * Math.min(delta * 2.0, 1)
+    const target = isOpen ? 1 : 0
+    const speed = isOpen ? 0.8 : 1.2
+    progressRef.current += (target - progressRef.current) * Math.min(delta * speed, 1)
+
+    const p = progressRef.current
+
+    // Cover opens during 0–0.25
+    const coverProgress = Math.min(p / 0.25, 1)
     if (coverFrontRef.current) {
-      coverFrontRef.current.rotation.y = -openRef.current * (140 * Math.PI / 180)
+      coverFrontRef.current.rotation.y = -coverProgress * coverMaxAngle
+    }
+
+    // Flip pages with staggered timing
+    for (let i = 0; i < FLIP_PAGES; i++) {
+      const ref = flipPageRefs.current[i]
+      if (!ref) continue
+
+      const pageStart = 0.15 + (i / FLIP_PAGES) * 0.55
+      const pageEnd = pageStart + 0.25
+      const pageProgress = Math.max(0, Math.min((p - pageStart) / (pageEnd - pageStart), 1))
+
+      // Smooth ease in-out
+      const eased = pageProgress < 0.5
+        ? 2 * pageProgress * pageProgress
+        : 1 - Math.pow(-2 * pageProgress + 2, 2) / 2
+
+      // Store for curve deformation
+      flipProgressArr.current[i] = eased
+
+      // Rotate — clamped to stay within cover angle
+      ref.rotation.y = -eased * pageMaxAngle
     }
   })
+
+  // Pages stacked just above page block surface (bD/2 - 0.005) but below cover (bD/2)
+  const pageStackBase = bD / 2 - 0.004
 
   return (
     <group ref={groupRef} position={[0, -bH / 2, 0]}>
@@ -277,12 +399,11 @@ function Book({ coverColor, paperColor, fontFamily, coverMaterial, coverText, is
         <boxGeometry args={[pageW, pageH, bD - 0.01]} />
       </mesh>
 
-      {/* Front cover (hinged at spine, pivots on Z axis at spine front face) */}
+      {/* Front cover (hinged at spine) */}
       <group ref={coverFrontRef} position={[0, 0, bD / 2 + coverT / 2]}>
         <mesh position={[bW / 2 + coverT / 2, bH / 2, 0]} material={coverMat}>
           <boxGeometry args={[bW + 0.02, bH + 0.02, coverT]} />
         </mesh>
-        {/* Title on front cover */}
         {coverTitleTex && (
           <mesh position={[bW / 2 + coverT / 2, bH * 0.65, coverT / 2 + 0.001]}>
             <planeGeometry args={[bW * 0.8, bW * 0.8]} />
@@ -291,12 +412,30 @@ function Book({ coverColor, paperColor, fontFamily, coverMaterial, coverText, is
         )}
       </group>
 
-      {/* Right page (on top of page block — visible when book opens) */}
-      <mesh position={[bW / 2, bH / 2, bD / 2 - 0.003]} material={rightPageMat}>
+      {/* Flipping pages — hinged at binding edge, stacked inside book */}
+      {Array.from({ length: FLIP_PAGES }).map((_, i) => (
+        <group
+          key={`flip-${i}`}
+          ref={el => flipPageRefs.current[i] = el}
+          position={[pageInset, pageInset, pageStackBase + (FLIP_PAGES - i) * 0.001]}
+        >
+          <CurvedPage
+            pageW={pageW}
+            pageH={pageH}
+            frontMaterial={flipFrontMats[i]}
+            backMaterial={flipBackMat}
+            flipProgressArr={flipProgressArr}
+            index={i}
+          />
+        </group>
+      ))}
+
+      {/* Final text page (visible after all flip pages have turned) */}
+      <mesh position={[bW / 2, bH / 2, pageStackBase]} material={rightPageMat}>
         <planeGeometry args={[pageW, pageH]} />
       </mesh>
 
-      {/* Left page (against back cover — visible when looking inside) */}
+      {/* Left page (against back cover) */}
       <mesh position={[bW / 2, bH / 2, -bD / 2 + 0.003]} rotation={[0, Math.PI, 0]} material={leftPageMat}>
         <planeGeometry args={[pageW, pageH]} />
       </mesh>
