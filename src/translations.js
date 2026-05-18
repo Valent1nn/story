@@ -143,7 +143,7 @@ const translations = {
     cfgPrint_color: 'Color',
     cfgPrint_bw: 'Black & White',
     cfgFont: 'Font:',
-    cfgFontPreviewText: 'The quick brown fox jumps over the lazy dog',
+    cfgFontPreviewText: 'Every story begins with a single word',
 
     cfgStep4Title: 'Cover & Premium Packaging',
     cfgStep4Desc: 'The final step for a luxury finished product.',
@@ -315,7 +315,7 @@ const translations = {
     cfgPrint_color: 'Color',
     cfgPrint_bw: 'Alb-Negru',
     cfgFont: 'Font:',
-    cfgFontPreviewText: 'Vulpea maro și rapidă sare peste câinele leneș',
+    cfgFontPreviewText: 'Fiecare poveste începe cu un singur cuvânt',
 
     cfgStep4Title: 'Coperta și ambalajul premium',
     cfgStep4Desc: 'Ultimul pas pentru un produs finit de lux.',
