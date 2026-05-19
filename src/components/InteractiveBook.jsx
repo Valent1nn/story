@@ -80,15 +80,17 @@ function createTextTexture(text, fontFamily, textColor, paperColor, width, heigh
 
   let y = margin
 
-  // Title
+  // Title (centered)
   if (title) {
     const titleSize = Math.round(fontSize * 1.4)
     ctx.font = `700 ${titleSize}px ${fontName}`
-    ctx.fillText(title, margin, y)
+    ctx.textAlign = 'center'
+    ctx.fillText(title, w / 2, y)
+    ctx.textAlign = 'left'
     y += titleSize * 1.8
   }
 
-  // Body text
+  // Body text (justified)
   ctx.font = `600 ${fontSize}px ${fontName}`
   const maxW = w - margin * 2
   const words = text.split(' ')
@@ -97,7 +99,19 @@ function createTextTexture(text, fontFamily, textColor, paperColor, width, heigh
   for (const word of words) {
     const test = line + word + ' '
     if (ctx.measureText(test).width > maxW && line !== '') {
-      ctx.fillText(line.trim(), margin, y)
+      // Justify the line
+      const lineWords = line.trim().split(' ')
+      if (lineWords.length > 1) {
+        const totalWordsWidth = lineWords.reduce((sum, w2) => sum + ctx.measureText(w2).width, 0)
+        const extraSpace = (maxW - totalWordsWidth) / (lineWords.length - 1)
+        let xPos = margin
+        for (const lw of lineWords) {
+          ctx.fillText(lw, xPos, y)
+          xPos += ctx.measureText(lw).width + extraSpace
+        }
+      } else {
+        ctx.fillText(line.trim(), margin, y)
+      }
       line = word + ' '
       y += lineHeight
       if (y > h - margin) break
@@ -118,13 +132,13 @@ function CameraZoom({ zoomToPage, controlsRef }) {
   const targetLookAt = useRef(new THREE.Vector3())
   const animating = useRef(false)
   const defaultPos = useRef(new THREE.Vector3(2.0, 1.2, 2.5))
-  const defaultTarget = useRef(new THREE.Vector3(0.4, 0, 0))
+  const defaultTarget = useRef(new THREE.Vector3(0, 0, 0))
 
   useEffect(() => {
     if (zoomToPage) {
       // Subtle zoom — just 10% closer
       targetPos.current.set(1.87, 1.1, 2.35)
-      targetLookAt.current.set(0.42, 0.02, 0)
+      targetLookAt.current.set(0.02, 0.02, 0)
       animating.current = true
     } else {
       // Don't animate back — let user keep their manual zoom/position
@@ -221,11 +235,11 @@ function Book({ coverColor, paperColor, fontFamily, coverMaterial, coverText, is
   // Page count drives book thickness (96→thin, 400→thick)
   const depthScale = 0.6 + ((pageCount - 96) / (400 - 96)) * 0.8
 
-  // All sizes are portrait; sm = pocket (smaller)
+  // Sizes: sm = pocket, md = standard (portrait), lg = landscape (width > height)
   const dims = sizeId === 'sm'
     ? { w: 0.75, h: 1.05, d: 0.12 * depthScale }
     : sizeId === 'lg'
-    ? { w: 1.1, h: 1.55, d: 0.18 * depthScale }
+    ? { w: 1.45, h: 1.05, d: 0.16 * depthScale }
     : { w: 0.95, h: 1.35, d: 0.15 * depthScale }
 
   const bW = dims.w
@@ -383,7 +397,7 @@ function Book({ coverColor, paperColor, fontFamily, coverMaterial, coverText, is
   const pageStackBase = bD / 2 - 0.004
 
   return (
-    <group ref={groupRef} position={[0, -bH / 2, 0]}>
+    <group ref={groupRef} position={[-bW / 2, -bH / 2, 0]}>
       {/* Back cover */}
       <mesh position={[bW / 2, bH / 2, -bD / 2 - coverT / 2]} material={coverMat}>
         <boxGeometry args={[bW + 0.02, bH + 0.02, coverT]} />
@@ -499,7 +513,7 @@ export default function InteractiveBook({
           maxDistance={6}
           autoRotate={!isOpen}
           autoRotateSpeed={-0.7}
-          target={[0.4, 0, 0]}
+          target={[0, 0, 0]}
         />
       </Canvas>
       <p className="interactive-box-hint">Drag to rotate · Scroll to zoom</p>

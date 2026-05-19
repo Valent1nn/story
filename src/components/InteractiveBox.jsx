@@ -1,6 +1,6 @@
 import { useRef, useMemo, useState } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { OrbitControls, Text } from '@react-three/drei'
+import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
 
 /*
@@ -116,7 +116,7 @@ function PackageBox({ color, finish, sizeId, variant = 'closed', accentColor = '
   const linenTex = useMemo(() => createLinenTexture(color), [color])
 
   // Materials
-  const { mainMat, interiorMat, accentMat } = useMemo(() => {
+  const { mainMat, interiorMat } = useMemo(() => {
     const isLinen = finish === 'linen'
     const shininess = finish === 'matte' ? 5 : finish === 'foil' ? 80 : isLinen ? 8 : 20
 
@@ -130,11 +130,7 @@ function PackageBox({ color, finish, sizeId, variant = 'closed', accentColor = '
 
     return {
       mainMat: new THREE.MeshPhongMaterial(matProps),
-      interiorMat: new THREE.MeshPhongMaterial({ color: accentColor, shininess: 12 }),
-      accentMat: new THREE.MeshPhongMaterial({
-        color: finish === 'foil' ? '#e8c97a' : '#b08d57',
-        shininess: finish === 'foil' ? 100 : 60,
-      }),
+      interiorMat: new THREE.MeshPhongMaterial({ color: accentColor, shininess: 12, side: THREE.DoubleSide }),
     }
   }, [color, finish, linenTex, accentColor])
 
@@ -169,8 +165,7 @@ function PackageBox({ color, finish, sizeId, variant = 'closed', accentColor = '
   const flapD = wD / 2 + t
   const panelH = wH
 
-  const isEmboss = finish === 'emboss'
-  const textColor = finish === 'foil' ? '#e8c97a' : '#aa9100'
+
 
   // Smooth flip + open/close animation
   useFrame((_, delta) => {
@@ -287,16 +282,16 @@ function PackageBox({ color, finish, sizeId, variant = 'closed', accentColor = '
       <mesh position={[-wW / 2 + t / 2, t + panelH / 2, 0]} material={mainMat} castShadow>
         <boxGeometry args={[t, panelH, wD - t * 2]} />
       </mesh>
-      <mesh position={[-wW / 2 + t + 0.001, t + panelH / 2, 0]} material={interiorMat}>
-        <boxGeometry args={[0.003, panelH - 0.04, wD - t * 2 - 0.04]} />
+      <mesh position={[-wW / 2 + t + 0.001, t + panelH / 2, 0]} material={interiorMat} rotation={[0, Math.PI / 2, 0]}>
+        <planeGeometry args={[wD - t * 2, panelH]} />
       </mesh>
 
       {/* ── RIGHT WALL ── */}
       <mesh position={[wW / 2 - t / 2, t + panelH / 2, 0]} material={mainMat} castShadow>
         <boxGeometry args={[t, panelH, wD - t * 2]} />
       </mesh>
-      <mesh position={[wW / 2 - t - 0.001, t + panelH / 2, 0]} material={interiorMat}>
-        <boxGeometry args={[0.003, panelH - 0.04, wD - t * 2 - 0.04]} />
+      <mesh position={[wW / 2 - t - 0.001, t + panelH / 2, 0]} material={interiorMat} rotation={[0, -Math.PI / 2, 0]}>
+        <planeGeometry args={[wD - t * 2, panelH]} />
       </mesh>
 
       {/* ── FRONT WALL GROUP (pivots at bottom edge) ── */}
@@ -305,74 +300,20 @@ function PackageBox({ color, finish, sizeId, variant = 'closed', accentColor = '
         <mesh position={[0, panelH / 2, 0]} material={mainMat} castShadow>
           <boxGeometry args={[wW, panelH, t]} />
         </mesh>
-        <mesh position={[0, panelH / 2, -0.001]} material={interiorMat}>
-          <boxGeometry args={[wW - 0.04, panelH - 0.04, 0.003]} />
+        {/* Inner face — full coverage */}
+        <mesh position={[0, panelH / 2, -t / 2 - 0.001]} material={interiorMat} rotation={[0, Math.PI, 0]}>
+          <planeGeometry args={[wW, panelH]} />
         </mesh>
 
-        {/* Front text */}
-        <Text
-          position={[0, panelH * 0.55, 0.006 + t / 2]}
-          fontSize={0.1 * scale}
-          color={isEmboss ? color : textColor}
-          anchorX="center"
-          anchorY="middle"
-          letterSpacing={0.1}
-          maxWidth={wW * 0.75}
-          textAlign="center"
-          depthOffset={-2}
-          outlineWidth={isEmboss ? 0.003 : 0}
-          outlineColor={isEmboss ? '#000000' : undefined}
-          outlineOpacity={isEmboss ? 0.15 : 0}
-        >
-          Your custom text
-        </Text>
 
-        {isEmboss && (
-          <>
-            <Text
-              position={[0, panelH * 0.55 + 0.003, 0.009 + t / 2]}
-              fontSize={0.1 * scale}
-              color="#ffffff"
-              anchorX="center"
-              anchorY="middle"
-              letterSpacing={0.1}
-              maxWidth={wW * 0.75}
-              textAlign="center"
-              depthOffset={-3}
-              fillOpacity={0.18}
-            >
-              Your custom text
-            </Text>
-            <Text
-              position={[0, panelH * 0.55 - 0.003, 0.008 + t / 2]}
-              fontSize={0.1 * scale}
-              color="#000000"
-              anchorX="center"
-              anchorY="middle"
-              letterSpacing={0.1}
-              maxWidth={wW * 0.75}
-              textAlign="center"
-              depthOffset={-3}
-              fillOpacity={0.12}
-            >
-              Your custom text
-            </Text>
-          </>
-        )}
-
-        {finish === 'foil' && (
-          <mesh position={[0, panelH * 0.45, 0.006 + t / 2]} material={accentMat}>
-            <boxGeometry args={[wW * 0.5, 0.015, 0.004]} />
-          </mesh>
-        )}
 
         {/* ── FRONT LID FLAP (L-shape extension, pivots at top of front wall) ── */}
         <group ref={frontFlapRef} position={[0, panelH, 0]}>
           <mesh position={[0, flapH / 2, -flapD / 2 + t / 2]} material={mainMat} castShadow>
             <boxGeometry args={[wW, flapH, flapD]} />
           </mesh>
-          <mesh position={[0, 0.001, -flapD / 2 + t / 2]} material={interiorMat}>
-            <boxGeometry args={[wW - 0.03, 0.003, flapD - 0.03]} />
+          <mesh position={[0, -0.001, -flapD / 2 + t / 2]} material={mainMat} rotation={[Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[wW, flapD]} />
           </mesh>
         </group>
       </group>
@@ -383,71 +324,20 @@ function PackageBox({ color, finish, sizeId, variant = 'closed', accentColor = '
         <mesh position={[0, panelH / 2, 0]} material={mainMat} castShadow>
           <boxGeometry args={[wW, panelH, t]} />
         </mesh>
-        <mesh position={[0, panelH / 2, 0.001]} material={interiorMat}>
-          <boxGeometry args={[wW - 0.04, panelH - 0.04, 0.003]} />
+        {/* Inner face — full coverage */}
+        <mesh position={[0, panelH / 2, t / 2 + 0.001]} material={interiorMat}>
+          <planeGeometry args={[wW, panelH]} />
         </mesh>
 
-        {/* Back text */}
-        <Text
-          position={[0, panelH * 0.55, -0.006 - t / 2]}
-          fontSize={0.1 * scale}
-          color={isEmboss ? color : textColor}
-          anchorX="center"
-          anchorY="middle"
-          letterSpacing={0.1}
-          maxWidth={wW * 0.75}
-          textAlign="center"
-          rotation={[0, Math.PI, 0]}
-          depthOffset={-2}
-          outlineWidth={isEmboss ? 0.003 : 0}
-          outlineColor={isEmboss ? '#000000' : undefined}
-          outlineOpacity={isEmboss ? 0.15 : 0}
-        >
-          Your custom text
-        </Text>
 
-        {isEmboss && (
-          <>
-            <Text
-              position={[0, panelH * 0.55 + 0.003, -0.009 - t / 2]}
-              fontSize={0.1 * scale}
-              color="#ffffff"
-              anchorX="center"
-              anchorY="middle"
-              letterSpacing={0.1}
-              maxWidth={wW * 0.75}
-              textAlign="center"
-              rotation={[0, Math.PI, 0]}
-              depthOffset={-3}
-              fillOpacity={0.18}
-            >
-              Your custom text
-            </Text>
-            <Text
-              position={[0, panelH * 0.55 - 0.003, -0.008 - t / 2]}
-              fontSize={0.1 * scale}
-              color="#000000"
-              anchorX="center"
-              anchorY="middle"
-              letterSpacing={0.1}
-              maxWidth={wW * 0.75}
-              textAlign="center"
-              rotation={[0, Math.PI, 0]}
-              depthOffset={-3}
-              fillOpacity={0.12}
-            >
-              Your custom text
-            </Text>
-          </>
-        )}
 
         {/* ── BACK LID FLAP (L-shape extension, pivots at top of back wall) ── */}
         <group ref={backFlapRef} position={[0, panelH, 0]}>
           <mesh position={[0, flapH / 2, flapD / 2 - t / 2]} material={mainMat} castShadow>
             <boxGeometry args={[wW, flapH, flapD]} />
           </mesh>
-          <mesh position={[0, 0.001, flapD / 2 - t / 2]} material={interiorMat}>
-            <boxGeometry args={[wW - 0.03, 0.003, flapD - 0.03]} />
+          <mesh position={[0, -0.001, flapD / 2 - t / 2]} material={mainMat} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[wW, flapD]} />
           </mesh>
         </group>
       </group>
@@ -463,16 +353,15 @@ function PackageBox({ color, finish, sizeId, variant = 'closed', accentColor = '
       </mesh>
 
       {/* ── OUTER CONTAINER (stays in place when walls fall) ── */}
-      <mesh position={[0, t + (wH - t) / 2, 0]}>
+      <mesh position={[0, t + (wH - t) / 2, 0]} material={mainMat}>
         <boxGeometry args={[wW - t * 2, wH - t, wD - t * 2]} />
-        <meshPhongMaterial color={accentColor} shininess={18} />
       </mesh>
 
       {/* ── BOOK (lifted by straps) ── */}
       <group ref={bookGroupRef}>
         <mesh position={[0, t + (wH - t) / 2 + 0.01, 0]} castShadow>
           <boxGeometry args={[wW - t * 2 - 0.04, wH - t - 0.06, wD - t * 2 - 0.06]} />
-          <meshPhongMaterial color="#5c1a2a" shininess={18} />
+          <meshPhongMaterial color={accentColor} shininess={18} />
         </mesh>
         {/* Pages */}
         <mesh position={[0, t + (wH - t) / 2 + 0.02, 0]}>

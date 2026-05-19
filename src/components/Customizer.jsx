@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import InteractiveBox from './InteractiveBox'
 import InteractiveBook from './InteractiveBook'
 import translations from '../translations'
@@ -11,6 +12,12 @@ const BOOK_FORMATS = [
   { id: 'pocket', dims: '100 × 140 mm' },
   { id: 'standard', dims: '130 × 200 mm' },
   { id: 'landscape', dims: '297 × 210 mm' },
+]
+
+const PACKAGING_SIZES = [
+  { id: 'pocket', dims: '120 × 160 mm' },
+  { id: 'standard', dims: '150 × 220 mm' },
+  { id: 'landscape', dims: '320 × 235 mm' },
 ]
 
 const ILLUSTRATION_PACKAGES = [
@@ -55,16 +62,20 @@ const FINISHES = [
   { id: 'emboss', css: 'finish-emboss' },
 ]
 
-// Packaging colors (box exterior, inner layers, ribbon)
+// Primary packaging colors — Wibalin® Finelinen range
 const PACKAGING_COLORS = [
-  { id: 'ivory', hex: '#f5f0e8', dark: false },
-  { id: 'charcoal', hex: '#5a5a5e', dark: true },
-  { id: 'navy', hex: '#3b5278', dark: true },
-  { id: 'burgundy', hex: '#8c3a4a', dark: true },
-  { id: 'forest', hex: '#4a6b4e', dark: true },
-  { id: 'sand', hex: '#d4c4a8', dark: false },
-  { id: 'black', hex: '#1a1a1a', dark: true },
-  { id: 'plum', hex: '#4a1942', dark: true },
+  { id: 'white', hex: '#f2f0ec', dark: false, label: 'WBF500 White' },
+  { id: 'buttermilk', hex: '#f0e2c0', dark: false, label: 'WBF509 Buttermilk' },
+  { id: 'silver-grey', hex: '#b8b9be', dark: false, label: 'WBF546 Silver Grey' },
+  { id: 'fawn', hex: '#c4a47a', dark: false, label: 'WBF502 Fawn' },
+]
+
+// Secondary (interior) colors — Suedel® Luxe range
+const INTERIOR_COLORS = [
+  { id: 'emeraude', hex: '#2b6b56', dark: true, label: 'SLG4521 Emeraude' },
+  { id: 'pervenche', hex: '#7889bf', dark: true, label: 'SLG4563 Pervenche' },
+  { id: 'royal', hex: '#2c3e78', dark: true, label: 'SLG4524 Royal' },
+  { id: 'tomate', hex: '#c0392b', dark: true, label: 'SLG4516 Tomate' },
 ]
 
 const STRAP_COLORS = [
@@ -138,6 +149,9 @@ export default function Customizer({ lang }) {
   const [pageCount, setPageCount] = useState(192)
   const [quantity, setQuantity] = useState(1)
 
+  // Packaging size
+  const [packagingSize, setPackagingSize] = useState('standard')
+
   // Step 2: Illustrations
   const [illustrationPkg, setIllustrationPkg] = useState('none')
   const [illustrationSource, setIllustrationSource] = useState('ai')
@@ -151,9 +165,9 @@ export default function Customizer({ lang }) {
   // Step 4: Cover & packaging
   const [coverMaterial, setCoverMaterial] = useState('printed')
   const [coverText, setCoverText] = useState('')
-  const [selectedFinish, setSelectedFinish] = useState('matte')
-  const [packagingColor1, setPackagingColor1] = useState('ivory')
-  const [packagingColor2, setPackagingColor2] = useState('burgundy')
+  const [selectedFinish, _setSelectedFinish] = useState('matte')
+  const [packagingColor1, setPackagingColor1] = useState('buttermilk')
+  const [packagingColor2, setPackagingColor2] = useState('emeraude')
   const [strapColor, setStrapColor] = useState('gold')
 
   // 3D preview variant
@@ -161,6 +175,14 @@ export default function Customizer({ lang }) {
 
   // Preview mode: 'packaging' or 'book'
   const [previewMode, setPreviewMode] = useState('packaging')
+
+  // Refresh ScrollTrigger when preview mode changes (controls panel height shifts)
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      ScrollTrigger.refresh()
+    }, 400) // wait for exit/enter animation to finish
+    return () => clearTimeout(timeout)
+  }, [previewMode])
 
   // Book 3D variant (open/closed) — mirrors packaging variant toggle
   const [bookVariant, setBookVariant] = useState('closed')
@@ -202,10 +224,11 @@ export default function Customizer({ lang }) {
 
   // Derived values for 3D preview
   const boxColor = PACKAGING_COLORS.find(c => c.id === packagingColor1)?.hex || '#f5f0e8'
-  const accentColor = PACKAGING_COLORS.find(c => c.id === packagingColor2)?.hex || '#6b2232'
+  const accentColor = INTERIOR_COLORS.find(c => c.id === packagingColor2)?.hex || '#2b6b56'
   const strapHex = STRAP_COLORS.find(c => c.id === strapColor)?.hex || '#c9a96e'
 
   const sizeId = bookFormat === 'pocket' ? 'sm' : bookFormat === 'landscape' ? 'lg' : 'md'
+  const packagingSizeId = packagingSize === 'pocket' ? 'sm' : packagingSize === 'landscape' ? 'lg' : 'md'
 
   // Font family for 3D book text
   const fontFamilyMap = { garamond: "'EB Garamond', serif", minion: "'Georgia', serif", poppins: "'Poppins', sans-serif" }
@@ -215,42 +238,43 @@ export default function Customizer({ lang }) {
     <div className="customizer">
       {/* Interactive 3D preview */}
       <div className="customizer-preview">
-        {/* Preview mode toggle */}
-        <div className="preview-mode-toggle">
-          {['packaging', 'book'].map((mode) => (
-            <motion.button
-              key={mode}
-              className={`preview-mode-btn ${previewMode === mode ? 'active' : ''}`}
-              onClick={() => setPreviewMode(mode)}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-            >
-              {mode === 'packaging' ? t.cfgPreviewPackaging : t.cfgPreviewBook}
-              {previewMode === mode && (
-                <motion.div
-                  className="preview-mode-indicator"
-                  layoutId="previewModeIndicator"
-                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                />
-              )}
-            </motion.button>
-          ))}
-        </div>
+        <div className="preview-canvas-wrapper">
+          {/* Mode toggle overlaid on canvas */}
+          <div className="preview-mode-toggle">
+            {['packaging', 'book'].map((mode) => (
+              <motion.button
+                key={mode}
+                className={`preview-mode-btn ${previewMode === mode ? 'active' : ''}`}
+                onClick={() => setPreviewMode(mode)}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+              >
+                {mode === 'packaging' ? t.cfgPreviewPackaging : t.cfgPreviewBook}
+                {previewMode === mode && (
+                  <motion.div
+                    className="preview-mode-indicator"
+                    layoutId="previewModeIndicator"
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  />
+                )}
+              </motion.button>
+            ))}
+          </div>
 
-        <AnimatePresence mode="wait">
-          {previewMode === 'packaging' ? (
-            <motion.div
-              key="packaging"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              style={{ width: '100%' }}
+          <AnimatePresence mode="wait">
+            {previewMode === 'packaging' ? (
+              <motion.div
+                key="packaging"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                style={{ width: '100%' }}
             >
               <InteractiveBox
                 color={boxColor}
                 finish={selectedFinish}
-                sizeId={sizeId}
+                sizeId={packagingSizeId}
                 variant={selectedVariant}
                 accentColor={accentColor}
                 strapColor={strapHex}
@@ -310,10 +334,149 @@ export default function Customizer({ lang }) {
             )
           })}
         </motion.div>
+        </div>
       </div>
 
       {/* Controls */}
       <div className="customizer-controls" data-lenis-prevent>
+        <AnimatePresence mode="wait">
+        {previewMode === 'packaging' ? (
+          <motion.div key="pkg-controls" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }} style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+
+          {/* ═══ Packaging format & quantity ═══ */}
+          <div className="control-group">
+            <h3 className="control-label">
+              <span className="step-number">01</span>
+              {t.cfgPkgStep1Title}
+            </h3>
+            <p className="control-hint">{t.cfgPkgStep1Desc}</p>
+
+            {/* Packaging size */}
+            <label className="field-label">{t.cfgPkgSize}</label>
+            <div className="size-options size-options--stack">
+              {PACKAGING_SIZES.map(fmt => (
+                <motion.button
+                  key={fmt.id}
+                  className={`size-btn ${packagingSize === fmt.id ? 'active' : ''}`}
+                  onClick={() => setPackagingSize(fmt.id)}
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.97 }}
+                  transition={spring}
+                >
+                  <span className="size-name">{t[`cfgFormat_${fmt.id}`]}</span>
+                  <span className="size-dims">{fmt.dims}</span>
+                </motion.button>
+              ))}
+            </div>
+
+            {/* Quantity */}
+            <label className="field-label">{t.cfgQuantity}</label>
+            <div className="cfg-quantity-row">
+              <button
+                className="cfg-qty-btn"
+                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+              >−</button>
+              <span className="cfg-qty-value">{quantity}</span>
+              <button
+                className="cfg-qty-btn"
+                onClick={() => setQuantity(quantity + 1)}
+              >+</button>
+              <span className="cfg-qty-unit">{t.cfgPieces}</span>
+            </div>
+          </div>
+
+          {/* ═══ Ambalaj colors ═══ */}
+          <div className="control-group">
+            <h3 className="control-label">
+              <span className="step-number">02</span>
+              {t.cfgAmbalajSection}
+            </h3>
+
+            <label className="field-label">{t.cfgAmbalajColor1}</label>
+            <div className="color-swatches">
+              {PACKAGING_COLORS.map(c => (
+                <motion.button
+                  key={c.id}
+                  className={`swatch ${packagingColor1 === c.id ? 'active' : ''}`}
+                  style={{ background: c.hex }}
+                  onClick={() => setPackagingColor1(c.id)}
+                  whileHover={{ scale: 1.2 }}
+                  whileTap={{ scale: 0.9 }}
+                  transition={spring}
+                >
+                  <AnimatePresence>
+                    {packagingColor1 === c.id && (
+                      <motion.svg
+                        width="14" height="14" viewBox="0 0 24 24" fill="none"
+                        initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
+                        transition={spring}
+                      >
+                        <path d="M5 13l4 4L19 7" stroke={c.dark ? '#fff' : '#1d1d1f'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </motion.svg>
+                    )}
+                  </AnimatePresence>
+                </motion.button>
+              ))}
+            </div>
+
+            <label className="field-label">{t.cfgAmbalajColor2}</label>
+            <div className="color-swatches">
+              {INTERIOR_COLORS.map(c => (
+                <motion.button
+                  key={c.id}
+                  className={`swatch ${packagingColor2 === c.id ? 'active' : ''}`}
+                  style={{ background: c.hex }}
+                  onClick={() => setPackagingColor2(c.id)}
+                  whileHover={{ scale: 1.2 }}
+                  whileTap={{ scale: 0.9 }}
+                  transition={spring}
+                >
+                  <AnimatePresence>
+                    {packagingColor2 === c.id && (
+                      <motion.svg
+                        width="14" height="14" viewBox="0 0 24 24" fill="none"
+                        initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
+                        transition={spring}
+                      >
+                        <path d="M5 13l4 4L19 7" stroke={c.dark ? '#fff' : '#1d1d1f'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </motion.svg>
+                    )}
+                  </AnimatePresence>
+                </motion.button>
+              ))}
+            </div>
+
+            <label className="field-label">{t.cfgAmbalajStrap}</label>
+            <div className="color-swatches">
+              {STRAP_COLORS.map(c => (
+                <motion.button
+                  key={c.id}
+                  className={`swatch ${strapColor === c.id ? 'active' : ''}`}
+                  style={{ background: c.hex }}
+                  onClick={() => setStrapColor(c.id)}
+                  whileHover={{ scale: 1.2 }}
+                  whileTap={{ scale: 0.9 }}
+                  transition={spring}
+                >
+                  <AnimatePresence>
+                    {strapColor === c.id && (
+                      <motion.svg
+                        width="14" height="14" viewBox="0 0 24 24" fill="none"
+                        initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
+                        transition={spring}
+                      >
+                        <path d="M5 13l4 4L19 7" stroke={c.dark ? '#fff' : '#1d1d1f'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </motion.svg>
+                    )}
+                  </AnimatePresence>
+                </motion.button>
+              ))}
+            </div>
+          </div>
+
+          </motion.div>
+        ) : (
+          <motion.div key="book-controls" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }} style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
 
         {/* ═══ STEP 1: Book format & volume ═══ */}
         <motion.div
@@ -537,7 +700,7 @@ export default function Customizer({ lang }) {
           </div>
         </motion.div>
 
-        {/* ═══ STEP 4: Cover & premium packaging ═══ */}
+        {/* ═══ STEP 4: Cover ═══ */}
         <motion.div
           className="control-group"
           initial={{ opacity: 0, x: 20 }}
@@ -581,163 +744,11 @@ export default function Customizer({ lang }) {
             <span className="cfg-upload-icon">↑</span>
             {t.cfgUploadCoverRef}
           </button>
-
-          {/* Packaging finish/texture */}
-          <label className="field-label">{t.cfgFinish}</label>
-          <div className="finish-options">
-            {FINISHES.map(finish => (
-              <motion.button
-                key={finish.id}
-                className={`finish-btn ${selectedFinish === finish.id ? 'active' : ''}`}
-                onClick={() => setSelectedFinish(finish.id)}
-                whileTap={{ scale: 0.98 }}
-                transition={spring}
-              >
-                <div className="finish-swatch-row">
-                  <span className={`finish-swatch ${finish.css}`} />
-                  <div>
-                    <span className="finish-name">{t[`cfgFinish_${finish.id}`]}</span>
-                    <span className="finish-desc">{t[`cfgFinishDesc_${finish.id}`]}</span>
-                  </div>
-                </div>
-              </motion.button>
-            ))}
-          </div>
-
-          {/* Packaging colors */}
-          <label className="field-label">{t.cfgPackagingColor1}</label>
-          <div className="color-swatches">
-            {PACKAGING_COLORS.map(c => (
-              <motion.button
-                key={c.id}
-                className={`swatch ${packagingColor1 === c.id ? 'active' : ''}`}
-                style={{ background: c.hex }}
-                onClick={() => setPackagingColor1(c.id)}
-                whileHover={{ scale: 1.2 }}
-                whileTap={{ scale: 0.9 }}
-                transition={spring}
-              >
-                <AnimatePresence>
-                  {packagingColor1 === c.id && (
-                    <motion.svg
-                      width="14" height="14" viewBox="0 0 24 24" fill="none"
-                      initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
-                      transition={spring}
-                    >
-                      <path d="M5 13l4 4L19 7" stroke={c.dark ? '#fff' : '#1d1d1f'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </motion.svg>
-                  )}
-                </AnimatePresence>
-              </motion.button>
-            ))}
-          </div>
-
-          <label className="field-label">{t.cfgPackagingColor2}</label>
-          <div className="color-swatches">
-            {PACKAGING_COLORS.map(c => (
-              <motion.button
-                key={c.id}
-                className={`swatch ${packagingColor2 === c.id ? 'active' : ''}`}
-                style={{ background: c.hex }}
-                onClick={() => setPackagingColor2(c.id)}
-                whileHover={{ scale: 1.2 }}
-                whileTap={{ scale: 0.9 }}
-                transition={spring}
-              >
-                <AnimatePresence>
-                  {packagingColor2 === c.id && (
-                    <motion.svg
-                      width="14" height="14" viewBox="0 0 24 24" fill="none"
-                      initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
-                      transition={spring}
-                    >
-                      <path d="M5 13l4 4L19 7" stroke={c.dark ? '#fff' : '#1d1d1f'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </motion.svg>
-                  )}
-                </AnimatePresence>
-              </motion.button>
-            ))}
-          </div>
-
-          <label className="field-label">{t.cfgPackagingColor3}</label>
-          <div className="color-swatches">
-            {STRAP_COLORS.map(c => (
-              <motion.button
-                key={c.id}
-                className={`swatch ${strapColor === c.id ? 'active' : ''}`}
-                style={{ background: c.hex }}
-                onClick={() => setStrapColor(c.id)}
-                whileHover={{ scale: 1.2 }}
-                whileTap={{ scale: 0.9 }}
-                transition={spring}
-              >
-                <AnimatePresence>
-                  {strapColor === c.id && (
-                    <motion.svg
-                      width="14" height="14" viewBox="0 0 24 24" fill="none"
-                      initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
-                      transition={spring}
-                    >
-                      <path d="M5 13l4 4L19 7" stroke={c.dark ? '#fff' : '#1d1d1f'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </motion.svg>
-                  )}
-                </AnimatePresence>
-              </motion.button>
-            ))}
-          </div>
         </motion.div>
 
-        {/* ═══ SUMMARY ═══ */}
-        <motion.div
-          className="control-group cfg-summary"
-          initial={{ opacity: 0, x: 20 }}
-          whileInView={{ opacity: 1, x: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          <h3 className="control-label">
-            <span className="step-number">✓</span>
-            {t.cfgSummaryTitle}
-          </h3>
-          <div className="cfg-summary-grid">
-            <div className="cfg-summary-row">
-              <span className="cfg-summary-label">{t.cfgBookFormat}</span>
-              <span className="cfg-summary-value">{t[`cfgFormat_${bookFormat}`]}</span>
-            </div>
-            <div className="cfg-summary-row">
-              <span className="cfg-summary-label">{t.cfgPageCount}</span>
-              <span className="cfg-summary-value">{pageCount} {t.cfgPages}</span>
-            </div>
-            <div className="cfg-summary-row">
-              <span className="cfg-summary-label">{t.cfgQuantity}</span>
-              <span className="cfg-summary-value">{quantity} {t.cfgPieces}</span>
-            </div>
-            <div className="cfg-summary-row">
-              <span className="cfg-summary-label">{t.cfgIllustrationPkg}</span>
-              <span className="cfg-summary-value">{t[`cfgIllPkg_${illustrationPkg}`]}</span>
-            </div>
-            <div className="cfg-summary-row">
-              <span className="cfg-summary-label">{t.cfgPaperType}</span>
-              <span className="cfg-summary-value">{t[`cfgPaper_${paperType}`]}</span>
-            </div>
-            <div className="cfg-summary-row">
-              <span className="cfg-summary-label">{t.cfgPrintType}</span>
-              <span className="cfg-summary-value">{t[`cfgPrint_${printType}`]}</span>
-            </div>
-            <div className="cfg-summary-row">
-              <span className="cfg-summary-label">{t.cfgFont}</span>
-              <span className="cfg-summary-value">{FONTS.find(f => f.id === font)?.name}</span>
-            </div>
-            <div className="cfg-summary-row">
-              <span className="cfg-summary-label">{t.cfgCoverMaterial}</span>
-              <span className="cfg-summary-value">{t[`cfgCover_${coverMaterial}`]}</span>
-            </div>
-            <div className="cfg-summary-row">
-              <span className="cfg-summary-label">{t.cfgFinish}</span>
-              <span className="cfg-summary-value">{t[`cfgFinish_${selectedFinish}`]}</span>
-            </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        )}
+        </AnimatePresence>
       </div>
     </div>
   )

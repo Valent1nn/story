@@ -740,11 +740,13 @@
 /* --- Customizer component styles --- */
 .customizer {
   display: grid;
-  grid-template-columns: 1fr minmax(280px, 22%);
-  gap: 4rem;
+  grid-template-columns: 1fr minmax(280px, 28%);
+  gap: 3rem;
   align-items: start;
-  margin-top: 2rem;
-  min-height: 650px;
+  width: 100%;
+  min-height: 550px;
+  max-width: 1800px;
+  margin: 0 auto;
 }
 
 .customizer-preview {
@@ -756,10 +758,15 @@
   min-width: 0;
 }
 
+.preview-canvas-wrapper {
+  position: relative;
+  width: 100%;
+}
+
 /* Interactive 3D box canvas */
 .interactive-box-canvas {
   width: 100%;
-  height: 720px;
+  height: min(620px, 65vh);
   border-radius: 16px;
   overflow: hidden;
   background: linear-gradient(145deg, #f8f6f3 0%, #eeebe5 100%);
@@ -785,17 +792,23 @@
 }
 
 /* Variant toggle (Closed / Open) */
-/* Preview mode toggle (Packaging / Book) */
+/* Preview mode toggle (Packaging / Book) — overlaid on canvas */
 .preview-mode-toggle {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
   display: flex;
   justify-content: center;
   gap: 0;
-  margin-bottom: 1rem;
-  background: var(--color-bg-alt);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-radius: 10px;
   padding: 3px;
-  align-self: center;
   width: fit-content;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
 }
 
 .preview-mode-btn {
@@ -1826,7 +1839,7 @@
     position: static;
   }
   .interactive-box-canvas {
-    height: 420px;
+    height: min(420px, 55vh);
   }
 }
 
