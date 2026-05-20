@@ -596,7 +596,7 @@ export default function App() {
         >
           <motion.p className="hero-eyebrow" variants={heroChild}>{t.heroEyebrow}</motion.p>
           <motion.h1 className="hero-title shimmer-text" variants={heroChild}>
-            {t.heroTitle1}<br />{t.heroTitleConnector}<em>{t.heroTitle2}</em>
+            {t.heroTitle1} {t.heroTitleConnector}<em>{t.heroTitle2}</em>
           </motion.h1>
           <motion.p className="hero-sub" variants={heroChild}>
             {t.heroSub1}<br />{t.heroSub2}

@@ -7,10 +7,10 @@ const translations = {
     navInquire: 'Inquire',
 
     // Hero
-    heroEyebrow: 'Premium Custom Packaging',
-    heroTitle1: 'A book, reimagined',
-    heroTitleConnector: 'as ',
-    heroTitle2: 'an experience.',
+    heroEyebrow: 'Custom Book Edition',
+    heroTitle1: 'Your words & memories',
+    heroTitleConnector: '',
+    heroTitle2: 'gain a new dimension.',
     heroSub1: 'Every element engineered to transform',
     heroSub2: 'the act of opening into something unforgettable.',
     heroCta: 'Customize yours',
@@ -183,10 +183,10 @@ const translations = {
     navInquire: 'Contact',
 
     // Hero
-    heroEyebrow: 'Ambalaj Premium Personalizat',
-    heroTitle1: 'O carte, reinventată',
-    heroTitleConnector: 'ca ',
-    heroTitle2: 'o experiență.',
+    heroEyebrow: 'Ediție de carte personalizată',
+    heroTitle1: 'Cuvintele & amintirile tale',
+    heroTitleConnector: '',
+    heroTitle2: 'prind o nouă dimensiune.',
     heroSub1: 'Fiecare element este conceput să transforme',
     heroSub2: 'actul deschiderii într-o experiență de neuitat.',
     heroCta: 'Personalizează',
