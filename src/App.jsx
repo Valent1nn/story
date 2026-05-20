@@ -350,12 +350,12 @@ function SectionDivider() {
 
 /* ── Product photos carousel ── */
 const productPhotos = [
+  { src: photoVelvetFlowers },
+  { src: photoEditorial },
   { src: photoClosed },
   { src: photoOpening },
   { src: photoRevealed },
   { src: photoDetail },
-  { src: photoVelvetFlowers },
-  { src: photoEditorial },
 ]
 
 /* Slide direction variants for carousel */
@@ -605,7 +605,7 @@ export default function App() {
         >
           <motion.p className="hero-eyebrow" variants={heroChild}>{t.heroEyebrow}</motion.p>
           <motion.h1 className="hero-title shimmer-text" variants={heroChild}>
-            {t.heroTitle1} <span className="amp">{t.heroAmpersand}</span> {t.heroTitle1b} {t.heroTitleConnector}<em>{t.heroTitle2}</em>
+            {t.heroTitle1} {t.heroAmpersand} {t.heroTitle1b} {t.heroTitleConnector}<em>{t.heroTitle2}</em>
           </motion.h1>
           <motion.p className="hero-sub" variants={heroChild}>
             {t.heroSub1}<br />{t.heroSub2}

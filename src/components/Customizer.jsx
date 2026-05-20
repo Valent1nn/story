@@ -339,144 +339,7 @@ export default function Customizer({ lang }) {
 
       {/* Controls */}
       <div className="customizer-controls" data-lenis-prevent>
-        <AnimatePresence mode="wait">
-        {previewMode === 'packaging' ? (
-          <motion.div key="pkg-controls" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }} style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
-
-          {/* ═══ Packaging format & quantity ═══ */}
-          <div className="control-group">
-            <h3 className="control-label">
-              <span className="step-number">01</span>
-              {t.cfgPkgStep1Title}
-            </h3>
-            <p className="control-hint">{t.cfgPkgStep1Desc}</p>
-
-            {/* Packaging size */}
-            <label className="field-label">{t.cfgPkgSize}</label>
-            <div className="size-options size-options--stack">
-              {PACKAGING_SIZES.map(fmt => (
-                <motion.button
-                  key={fmt.id}
-                  className={`size-btn ${packagingSize === fmt.id ? 'active' : ''}`}
-                  onClick={() => setPackagingSize(fmt.id)}
-                  whileHover={{ y: -2 }}
-                  whileTap={{ scale: 0.97 }}
-                  transition={spring}
-                >
-                  <span className="size-name">{t[`cfgFormat_${fmt.id}`]}</span>
-                  <span className="size-dims">{fmt.dims}</span>
-                </motion.button>
-              ))}
-            </div>
-
-            {/* Quantity */}
-            <label className="field-label">{t.cfgQuantity}</label>
-            <div className="cfg-quantity-row">
-              <button
-                className="cfg-qty-btn"
-                onClick={() => setQuantity(Math.max(1, quantity - 1))}
-              >−</button>
-              <span className="cfg-qty-value">{quantity}</span>
-              <button
-                className="cfg-qty-btn"
-                onClick={() => setQuantity(quantity + 1)}
-              >+</button>
-              <span className="cfg-qty-unit">{t.cfgPieces}</span>
-            </div>
-          </div>
-
-          {/* ═══ Ambalaj colors ═══ */}
-          <div className="control-group">
-            <h3 className="control-label">
-              <span className="step-number">02</span>
-              {t.cfgAmbalajSection}
-            </h3>
-
-            <label className="field-label">{t.cfgAmbalajColor1}</label>
-            <div className="color-swatches">
-              {PACKAGING_COLORS.map(c => (
-                <motion.button
-                  key={c.id}
-                  className={`swatch ${packagingColor1 === c.id ? 'active' : ''}`}
-                  style={{ background: c.hex }}
-                  onClick={() => setPackagingColor1(c.id)}
-                  whileHover={{ scale: 1.2 }}
-                  whileTap={{ scale: 0.9 }}
-                  transition={spring}
-                >
-                  <AnimatePresence>
-                    {packagingColor1 === c.id && (
-                      <motion.svg
-                        width="14" height="14" viewBox="0 0 24 24" fill="none"
-                        initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
-                        transition={spring}
-                      >
-                        <path d="M5 13l4 4L19 7" stroke={c.dark ? '#fff' : '#1d1d1f'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </motion.svg>
-                    )}
-                  </AnimatePresence>
-                </motion.button>
-              ))}
-            </div>
-
-            <label className="field-label">{t.cfgAmbalajColor2}</label>
-            <div className="color-swatches">
-              {INTERIOR_COLORS.map(c => (
-                <motion.button
-                  key={c.id}
-                  className={`swatch ${packagingColor2 === c.id ? 'active' : ''}`}
-                  style={{ background: c.hex }}
-                  onClick={() => setPackagingColor2(c.id)}
-                  whileHover={{ scale: 1.2 }}
-                  whileTap={{ scale: 0.9 }}
-                  transition={spring}
-                >
-                  <AnimatePresence>
-                    {packagingColor2 === c.id && (
-                      <motion.svg
-                        width="14" height="14" viewBox="0 0 24 24" fill="none"
-                        initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
-                        transition={spring}
-                      >
-                        <path d="M5 13l4 4L19 7" stroke={c.dark ? '#fff' : '#1d1d1f'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </motion.svg>
-                    )}
-                  </AnimatePresence>
-                </motion.button>
-              ))}
-            </div>
-
-            <label className="field-label">{t.cfgAmbalajStrap}</label>
-            <div className="color-swatches">
-              {STRAP_COLORS.map(c => (
-                <motion.button
-                  key={c.id}
-                  className={`swatch ${strapColor === c.id ? 'active' : ''}`}
-                  style={{ background: c.hex }}
-                  onClick={() => setStrapColor(c.id)}
-                  whileHover={{ scale: 1.2 }}
-                  whileTap={{ scale: 0.9 }}
-                  transition={spring}
-                >
-                  <AnimatePresence>
-                    {strapColor === c.id && (
-                      <motion.svg
-                        width="14" height="14" viewBox="0 0 24 24" fill="none"
-                        initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
-                        transition={spring}
-                      >
-                        <path d="M5 13l4 4L19 7" stroke={c.dark ? '#fff' : '#1d1d1f'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </motion.svg>
-                    )}
-                  </AnimatePresence>
-                </motion.button>
-              ))}
-            </div>
-          </div>
-
-          </motion.div>
-        ) : (
-          <motion.div key="book-controls" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }} style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
 
         {/* ═══ STEP 1: Book format & volume ═══ */}
         <motion.div
@@ -700,7 +563,7 @@ export default function Customizer({ lang }) {
           </div>
         </motion.div>
 
-        {/* ═══ STEP 4: Cover ═══ */}
+        {/* ═══ STEP 4: Cover & Packaging ═══ */}
         <motion.div
           className="control-group"
           initial={{ opacity: 0, x: 20 }}
@@ -744,11 +607,109 @@ export default function Customizer({ lang }) {
             <span className="cfg-upload-icon">↑</span>
             {t.cfgUploadCoverRef}
           </button>
+
+          {/* Packaging size */}
+          <label className="field-label" style={{ marginTop: '1.5rem' }}>{t.cfgPkgSize}</label>
+          <div className="size-options size-options--stack">
+            {PACKAGING_SIZES.map(fmt => (
+              <motion.button
+                key={fmt.id}
+                className={`size-btn ${packagingSize === fmt.id ? 'active' : ''}`}
+                onClick={() => setPackagingSize(fmt.id)}
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.97 }}
+                transition={spring}
+              >
+                <span className="size-name">{t[`cfgFormat_${fmt.id}`]}</span>
+                <span className="size-dims">{fmt.dims}</span>
+              </motion.button>
+            ))}
+          </div>
+
+          {/* Colors */}
+          <label className="field-label">{t.cfgAmbalajColor1}</label>
+          <div className="color-swatches">
+            {PACKAGING_COLORS.map(c => (
+              <motion.button
+                key={c.id}
+                className={`swatch ${packagingColor1 === c.id ? 'active' : ''}`}
+                style={{ background: c.hex }}
+                onClick={() => setPackagingColor1(c.id)}
+                whileHover={{ scale: 1.2 }}
+                whileTap={{ scale: 0.9 }}
+                transition={spring}
+              >
+                <AnimatePresence>
+                  {packagingColor1 === c.id && (
+                    <motion.svg
+                      width="14" height="14" viewBox="0 0 24 24" fill="none"
+                      initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
+                      transition={spring}
+                    >
+                      <path d="M5 13l4 4L19 7" stroke={c.dark ? '#fff' : '#1d1d1f'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </motion.svg>
+                  )}
+                </AnimatePresence>
+              </motion.button>
+            ))}
+          </div>
+
+          <label className="field-label">{t.cfgAmbalajColor2}</label>
+          <div className="color-swatches">
+            {INTERIOR_COLORS.map(c => (
+              <motion.button
+                key={c.id}
+                className={`swatch ${packagingColor2 === c.id ? 'active' : ''}`}
+                style={{ background: c.hex }}
+                onClick={() => setPackagingColor2(c.id)}
+                whileHover={{ scale: 1.2 }}
+                whileTap={{ scale: 0.9 }}
+                transition={spring}
+              >
+                <AnimatePresence>
+                  {packagingColor2 === c.id && (
+                    <motion.svg
+                      width="14" height="14" viewBox="0 0 24 24" fill="none"
+                      initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
+                      transition={spring}
+                    >
+                      <path d="M5 13l4 4L19 7" stroke={c.dark ? '#fff' : '#1d1d1f'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </motion.svg>
+                  )}
+                </AnimatePresence>
+              </motion.button>
+            ))}
+          </div>
+
+          <label className="field-label">{t.cfgAmbalajStrap}</label>
+          <div className="color-swatches">
+            {STRAP_COLORS.map(c => (
+              <motion.button
+                key={c.id}
+                className={`swatch ${strapColor === c.id ? 'active' : ''}`}
+                style={{ background: c.hex }}
+                onClick={() => setStrapColor(c.id)}
+                whileHover={{ scale: 1.2 }}
+                whileTap={{ scale: 0.9 }}
+                transition={spring}
+              >
+                <AnimatePresence>
+                  {strapColor === c.id && (
+                    <motion.svg
+                      width="14" height="14" viewBox="0 0 24 24" fill="none"
+                      initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
+                      transition={spring}
+                    >
+                      <path d="M5 13l4 4L19 7" stroke={c.dark ? '#fff' : '#1d1d1f'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </motion.svg>
+                  )}
+                </AnimatePresence>
+              </motion.button>
+            ))}
+          </div>
         </motion.div>
 
-          </motion.div>
-        )}
-        </AnimatePresence>
+        </div>
 
         {/* ═══ Unified Summary ═══ */}
         <div className="control-group cfg-summary">
@@ -772,7 +733,7 @@ export default function Customizer({ lang }) {
           </ul>
         </div>
 
-        {/* ═══ Pricing Options ═══ */}
+        {/* ═══ Pricing ═══ */}
         <div className="control-group cfg-pricing">
           <h3 className="control-label">
             <span className="step-number">💰</span>
@@ -780,34 +741,18 @@ export default function Customizer({ lang }) {
           </h3>
           <p className="control-hint">{t.cfgPricingDesc}</p>
           {(() => {
-            // Check if current config matches a reference price
             const baseMatch = bookFormat === 'standard' && pageCount === 248 && quantity === 1 &&
               illustrationPkg === 'standard' && paperType === 'offset-ivory' && printType === 'bw' && font === 'minion'
             const matchOption1 = baseMatch && coverMaterial === 'printed'
             const matchOption2 = baseMatch && coverMaterial === 'velvet'
             const matchedPrice = matchOption1 ? '3.790 lei' : matchOption2 ? '4.105 lei' : null
+            const matchedName = matchOption1 ? t.cfgPricingOption1Name : matchOption2 ? t.cfgPricingOption2Name : t.cfgPricingCustomName
 
             return (
           <div className="cfg-pricing-options">
-            <div className={`cfg-pricing-card ${matchOption1 ? 'cfg-pricing-card--matched' : ''}`}>
+            <div className={`cfg-pricing-card ${matchedPrice ? 'cfg-pricing-card--matched' : 'cfg-pricing-card--custom'}`}>
               <div className="cfg-pricing-card-header">
-                <span className="cfg-pricing-name">{t.cfgPricingOption1Name}</span>
-                <span className="cfg-pricing-price">3.790 lei</span>
-              </div>
-              <p className="cfg-pricing-details">{t.cfgPricingOption1Desc}</p>
-              {matchOption1 && <span className="cfg-pricing-match-badge">{t.cfgPricingMatchBadge}</span>}
-            </div>
-            <div className={`cfg-pricing-card ${matchOption2 ? 'cfg-pricing-card--matched' : ''}`}>
-              <div className="cfg-pricing-card-header">
-                <span className="cfg-pricing-name">{t.cfgPricingOption2Name}</span>
-                <span className="cfg-pricing-price">4.105 lei</span>
-              </div>
-              <p className="cfg-pricing-details">{t.cfgPricingOption2Desc}</p>
-              {matchOption2 && <span className="cfg-pricing-match-badge">{t.cfgPricingMatchBadge}</span>}
-            </div>
-            <div className="cfg-pricing-card cfg-pricing-card--custom">
-              <div className="cfg-pricing-card-header">
-                <span className="cfg-pricing-name">{t.cfgPricingCustomName}</span>
+                <span className="cfg-pricing-name">{matchedName}</span>
                 <span className={`cfg-pricing-price ${matchedPrice ? '' : 'cfg-pricing-price--custom'}`}>{matchedPrice || t.cfgPricingCustomPrice}</span>
               </div>
               <ul className="cfg-pricing-custom-specs">
