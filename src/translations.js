@@ -8,7 +8,9 @@ const translations = {
 
     // Hero
     heroEyebrow: 'Custom Book Edition',
-    heroTitle1: 'Your words & memories',
+    heroTitle1: 'Your words',
+    heroAmpersand: '&',
+    heroTitle1b: 'memories',
     heroTitleConnector: '',
     heroTitle2: 'gain a new dimension.',
     heroSub1: 'Every element engineered to transform',
@@ -20,14 +22,14 @@ const translations = {
     storyEyebrow: 'The Product',
     storyTitle1: 'At first glance, a refined',
     storyTitle2: 'rectangular form.',
-    storyBody: 'Minimal. Precise. Magnetically sealed. The exterior reveals nothing of what lies within — only the quiet confidence of something worth waiting for.',
+    storyBody: 'Minimal. Precise. Magnetically sealed. The exterior reveals nothing of what lies within - only the quiet confidence of something worth waiting for.',
 
     // Moment
     momentEyebrow: 'The Moment',
     momentTitle1: 'The true magic begins',
     momentTitle2: 'the moment it is',
     momentTitle3: 'opened.',
-    momentBody: 'As the magnetic closure releases, the structure unfolds horizontally in a controlled, almost theatrical motion. The walls gently fall away, guided by fine straps — elevating the book upward.',
+    momentBody: 'As the magnetic closure releases, the structure unfolds horizontally in a controlled, almost theatrical motion. The walls gently fall away, guided by fine straps - elevating the book upward.',
 
     // Gallery
     galleryEyebrow: 'The Product',
@@ -36,10 +38,12 @@ const translations = {
     galleryTitle2: 'perfection.',
     galleryBody: 'Every angle tells a story of precision engineering and refined craft.',
     galleryCaptions: [
-      'Closed — Linen-wrapped exterior with magnetic seal',
-      'Opening — Covers fall to reveal the interior',
-      'Revealed — Book elevated by ribbon straps',
-      'Detail — Burgundy interior with gold accents',
+      'Closed - Linen-wrapped exterior with magnetic seal',
+      'Opening - Covers fall to reveal the interior',
+      'Revealed - Book elevated by ribbon straps',
+      'Detail - Burgundy interior with gold accents',
+      'Composition - Velvet cover with open book and flowers',
+      'Editorial - Full collection arrangement',
     ],
 
     // Statement
@@ -67,7 +71,7 @@ const translations = {
     closingTitle1: 'A packaging experience',
     closingTitleConnector: 'that feels ',
     closingTitle2: 'deeply personal.',
-    closingBody: 'Crafted not just for a product — but for the person receiving it.',
+    closingBody: 'Crafted not just for a product - but for the person receiving it.',
 
     // CTA
     ctaTitle: 'Begin your story.',
@@ -184,7 +188,9 @@ const translations = {
 
     // Hero
     heroEyebrow: 'Ediție de carte personalizată',
-    heroTitle1: 'Cuvintele & amintirile tale',
+    heroTitle1: 'Cuvintele',
+    heroAmpersand: '&',
+    heroTitle1b: 'amintirile tale',
     heroTitleConnector: '',
     heroTitle2: 'prind o nouă dimensiune.',
     heroSub1: 'Fiecare element este conceput să transforme',
@@ -212,10 +218,12 @@ const translations = {
     galleryTitle2: 'perfecțiune.',
     galleryBody: 'Fiecare unghi spune o poveste despre inginerie de precizie și meșteșug rafinat.',
     galleryCaptions: [
-      'Închis — Exterior învelit în pânză de in cu sigiliu magnetic',
-      'Deschidere — Coperțile cad dezvăluind interiorul',
-      'Dezvăluit — Cartea ridicată de curele din panglică',
-      'Detaliu — Interior vișiniu cu accente aurii',
+      'Închis - Exterior învelit în pânză de in cu sigiliu magnetic',
+      'Deschidere - Coperțile cad dezvăluind interiorul',
+      'Dezvăluit - Cartea ridicată de curele din panglică',
+      'Detaliu - Interior vișiniu cu accente aurii',
+      'Compoziție - Copertă de catifea cu carte deschisă și flori',
+      'Editorial - Aranjament complet al colecției',
     ],
 
     // Statement

@@ -240,6 +240,13 @@
   color: var(--color-accent);
 }
 
+.amp {
+  font-family: 'Harrington', 'Times New Roman', serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 1.05em;
+}
+
 .hero-sub {
   font-size: 1.15rem;
   font-weight: 400;

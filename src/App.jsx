@@ -7,6 +7,13 @@ import Customizer from './components/Customizer'
 import translations from './translations'
 import './App.css'
 
+import photoClosed from './assets/703119373_970828235575225_2016530190926211613_n.jpg'
+import photoOpening from './assets/702999144_1274387514867836_6452845083624483878_n.jpg'
+import photoRevealed from './assets/704945826_1923005538392391_1049495762040260104_n.jpg'
+import photoDetail from './assets/702249772_1510764680712483_6768603413849399314_n.jpg'
+import photoVelvetFlowers from './assets/704366446_1269384405178441_2435643770293334876_n.jpg'
+import photoEditorial from './assets/702324004_2762168410818167_6665498031614407472_n.jpg'
+
 gsap.registerPlugin(ScrollTrigger)
 
 /* ── Framer Motion animation variants ── */
@@ -343,10 +350,12 @@ function SectionDivider() {
 
 /* ── Product photos carousel ── */
 const productPhotos = [
-  { src: 'https://4kwallpapers.com/images/wallpapers/corgi-puppy-happy-3840x2160-13252.jpg' },
-  { src: 'https://cdn.thegreatprojects.com/thegreatprojects/uploads/43965b5fa1ae51283b083e1065d4cf55.jpg?format=jpg&width=&height=' },
-  { src: 'https://c.ndtvimg.com/gws/ms/cutest-animals-in-the-world/assets/6.jpeg?1724137933' },
-  { src: 'https://www.pixelstalk.net/wp-content/uploads/images6/Cute-Bunny-Backgrounds-HD.jpg' },
+  { src: photoClosed },
+  { src: photoOpening },
+  { src: photoRevealed },
+  { src: photoDetail },
+  { src: photoVelvetFlowers },
+  { src: photoEditorial },
 ]
 
 /* Slide direction variants for carousel */
@@ -596,7 +605,7 @@ export default function App() {
         >
           <motion.p className="hero-eyebrow" variants={heroChild}>{t.heroEyebrow}</motion.p>
           <motion.h1 className="hero-title shimmer-text" variants={heroChild}>
-            {t.heroTitle1} {t.heroTitleConnector}<em>{t.heroTitle2}</em>
+            {t.heroTitle1} <span className="amp">{t.heroAmpersand}</span> {t.heroTitle1b} {t.heroTitleConnector}<em>{t.heroTitle2}</em>
           </motion.h1>
           <motion.p className="hero-sub" variants={heroChild}>
             {t.heroSub1}<br />{t.heroSub2}
