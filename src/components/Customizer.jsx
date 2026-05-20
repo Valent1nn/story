@@ -73,9 +73,9 @@ const PACKAGING_COLORS = [
 // Secondary (interior) colors — Suedel® Luxe range
 const INTERIOR_COLORS = [
   { id: 'emeraude', hex: '#2b6b56', dark: true, label: 'SLG4521 Emeraude' },
-  { id: 'pervenche', hex: '#7889bf', dark: true, label: 'SLG4563 Pervenche' },
-  { id: 'royal', hex: '#2c3e78', dark: true, label: 'SLG4524 Royal' },
-  { id: 'tomate', hex: '#c0392b', dark: true, label: 'SLG4516 Tomate' },
+  { id: 'pervenche', hex: '#44305e', dark: true, label: 'SLG4563 Pervenche' },
+  { id: 'royal', hex: '#1a2d4d', dark: true, label: 'SLG4524 Royal' },
+  { id: 'tomate', hex: '#64151d', dark: true, label: 'SLG4516 Tomate' },
 ]
 
 const STRAP_COLORS = [
@@ -83,8 +83,8 @@ const STRAP_COLORS = [
   { id: 'silver', hex: '#a8a9ad', dark: false },
   { id: 'ivory', hex: '#f0e6d0', dark: false },
   { id: 'black', hex: '#2a2a2a', dark: true },
-  { id: 'burgundy', hex: '#6b2232', dark: true },
-  { id: 'navy', hex: '#2c3e5a', dark: true },
+  { id: 'burgundy', hex: '#8a2e40', dark: true },
+  { id: 'navy', hex: '#3a5070', dark: true },
 ]
 
 const spring = { type: 'spring', stiffness: 400, damping: 25 }
