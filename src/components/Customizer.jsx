@@ -749,6 +749,89 @@ export default function Customizer({ lang }) {
           </motion.div>
         )}
         </AnimatePresence>
+
+        {/* ═══ Unified Summary ═══ */}
+        <div className="control-group cfg-summary">
+          <h3 className="control-label">
+            <span className="step-number">✓</span>
+            {t.cfgSummaryTitle}
+          </h3>
+          <ul className="cfg-summary-list">
+            <li><span className="cfg-summary-label">{t.cfgBookFormat}</span> <span className="cfg-summary-value">{t[`cfgFormat_${bookFormat}`]} - {BOOK_FORMATS.find(f => f.id === bookFormat)?.dims}</span></li>
+            <li><span className="cfg-summary-label">{t.cfgPageCount}</span> <span className="cfg-summary-value">{pageCount} {t.cfgPages}</span></li>
+            <li><span className="cfg-summary-label">{t.cfgQuantity}</span> <span className="cfg-summary-value">{quantity} {t.cfgPieces}</span></li>
+            <li><span className="cfg-summary-label">{t.cfgIllustrationPkg}</span> <span className="cfg-summary-value">{t[`cfgIllPkg_${illustrationPkg}`]}</span></li>
+            <li><span className="cfg-summary-label">{t.cfgPaperType}</span> <span className="cfg-summary-value">{t[`cfgPaper_${paperType}`]}</span></li>
+            <li><span className="cfg-summary-label">{t.cfgPrintType}</span> <span className="cfg-summary-value">{t[`cfgPrint_${printType}`]}</span></li>
+            <li><span className="cfg-summary-label">{t.cfgFont}</span> <span className="cfg-summary-value">{FONTS.find(f => f.id === font)?.name}</span></li>
+            <li><span className="cfg-summary-label">{t.cfgCoverMaterial}</span> <span className="cfg-summary-value">{t[`cfgCover_${coverMaterial}`]}</span></li>
+            <li><span className="cfg-summary-label">{t.cfgPkgSize}</span> <span className="cfg-summary-value">{t[`cfgFormat_${packagingSize}`]} - {PACKAGING_SIZES.find(s => s.id === packagingSize)?.dims}</span></li>
+            <li><span className="cfg-summary-label">{t.cfgAmbalajColor1}</span> <span className="cfg-summary-value"><span className="cfg-summary-swatch" style={{ background: boxColor }} /> {PACKAGING_COLORS.find(c => c.id === packagingColor1)?.label}</span></li>
+            <li><span className="cfg-summary-label">{t.cfgAmbalajColor2}</span> <span className="cfg-summary-value"><span className="cfg-summary-swatch" style={{ background: accentColor }} /> {INTERIOR_COLORS.find(c => c.id === packagingColor2)?.label}</span></li>
+            <li><span className="cfg-summary-label">{t.cfgAmbalajStrap}</span> <span className="cfg-summary-value"><span className="cfg-summary-swatch" style={{ background: strapHex }} /> {strapColor}</span></li>
+          </ul>
+        </div>
+
+        {/* ═══ Pricing Options ═══ */}
+        <div className="control-group cfg-pricing">
+          <h3 className="control-label">
+            <span className="step-number">💰</span>
+            {t.cfgPricingTitle}
+          </h3>
+          <p className="control-hint">{t.cfgPricingDesc}</p>
+          {(() => {
+            // Check if current config matches a reference price
+            const baseMatch = bookFormat === 'standard' && pageCount === 248 && quantity === 1 &&
+              illustrationPkg === 'standard' && paperType === 'offset-ivory' && printType === 'bw' && font === 'minion'
+            const matchOption1 = baseMatch && coverMaterial === 'printed'
+            const matchOption2 = baseMatch && coverMaterial === 'velvet'
+            const matchedPrice = matchOption1 ? '3.790 lei' : matchOption2 ? '4.105 lei' : null
+
+            return (
+          <div className="cfg-pricing-options">
+            <div className={`cfg-pricing-card ${matchOption1 ? 'cfg-pricing-card--matched' : ''}`}>
+              <div className="cfg-pricing-card-header">
+                <span className="cfg-pricing-name">{t.cfgPricingOption1Name}</span>
+                <span className="cfg-pricing-price">3.790 lei</span>
+              </div>
+              <p className="cfg-pricing-details">{t.cfgPricingOption1Desc}</p>
+              {matchOption1 && <span className="cfg-pricing-match-badge">{t.cfgPricingMatchBadge}</span>}
+            </div>
+            <div className={`cfg-pricing-card ${matchOption2 ? 'cfg-pricing-card--matched' : ''}`}>
+              <div className="cfg-pricing-card-header">
+                <span className="cfg-pricing-name">{t.cfgPricingOption2Name}</span>
+                <span className="cfg-pricing-price">4.105 lei</span>
+              </div>
+              <p className="cfg-pricing-details">{t.cfgPricingOption2Desc}</p>
+              {matchOption2 && <span className="cfg-pricing-match-badge">{t.cfgPricingMatchBadge}</span>}
+            </div>
+            <div className="cfg-pricing-card cfg-pricing-card--custom">
+              <div className="cfg-pricing-card-header">
+                <span className="cfg-pricing-name">{t.cfgPricingCustomName}</span>
+                <span className={`cfg-pricing-price ${matchedPrice ? '' : 'cfg-pricing-price--custom'}`}>{matchedPrice || t.cfgPricingCustomPrice}</span>
+              </div>
+              <ul className="cfg-pricing-custom-specs">
+                <li>{t[`cfgFormat_${bookFormat}`]} - {BOOK_FORMATS.find(f => f.id === bookFormat)?.dims}</li>
+                <li>{pageCount} {t.cfgPages}</li>
+                <li>{quantity} {t.cfgPieces}</li>
+                <li>{t[`cfgIllPkg_${illustrationPkg}`]}</li>
+                <li>{t[`cfgPaper_${paperType}`]}</li>
+                <li>{t[`cfgPrint_${printType}`]}</li>
+                <li>{FONTS.find(f => f.id === font)?.name}</li>
+                <li>{t[`cfgCover_${coverMaterial}`]}</li>
+              </ul>
+              {matchedPrice
+                ? <p className="cfg-pricing-details cfg-pricing-details--matched">{t.cfgPricingMatchMsg}</p>
+                : <>
+                    <p className="cfg-pricing-details">{t.cfgPricingCustomDesc}</p>
+                    <a href="#inquire" className="cfg-pricing-cta">{t.cfgPricingCustomCta}</a>
+                  </>
+              }
+            </div>
+          </div>
+            )
+          })()}
+        </div>
       </div>
     </div>
   )

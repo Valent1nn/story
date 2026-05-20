@@ -177,7 +177,17 @@ const translations = {
     cfgPkgSize: 'Packaging size:',
 
     cfgSummaryTitle: 'Summary',
-  },
+    cfgPricingTitle: 'Pricing Options',
+    cfgPricingDesc: 'Reference prices based on standard configuration.',
+    cfgPricingOption1Name: 'Printed Cover',
+    cfgPricingOption1Desc: 'Standard format, 248 pages, 1 piece, 3–5 illustrations, offset ivory, black & white, Minion Pro, hard cover, printed design',
+    cfgPricingOption2Name: 'Velvet Cover',
+    cfgPricingOption2Desc: 'Standard format, 248 pages, 1 piece, 3–5 illustrations, offset ivory, black & white, Minion Pro, hard cover, velvet material, embroidered design',
+    cfgPricingCustomName: 'Your Configuration',
+    cfgPricingCustomPrice: 'Custom',
+    cfgPricingCustomDesc: 'Based on the options you selected above — let\'s connect to establish the right price for your unique edition.',
+    cfgPricingCustomCta: 'Get in Touch',    cfgPricingMatchBadge: 'Your selection',
+    cfgPricingMatchMsg: 'Your configuration matches this option \u2014 the price shown applies to your edition.',  },
 
   ro: {
     // Nav
@@ -357,6 +367,16 @@ const translations = {
     cfgPkgSize: 'Dimensiunea ambalajului:',
 
     cfgSummaryTitle: 'Rezumat',
+    cfgPricingTitle: 'Opțiuni de preț',
+    cfgPricingDesc: 'Prețuri de referință pentru configurația standard.',
+    cfgPricingOption1Name: 'Copertă imprimată',
+    cfgPricingOption1Desc: 'Format standard, 248 pagini, 1 bucată, 3–5 ilustrații, offset ivory, alb-negru, Minion Pro, copertă tare, design imprimat',
+    cfgPricingOption2Name: 'Copertă catifea',
+    cfgPricingOption2Desc: 'Format standard, 248 pagini, 1 bucată, 3–5 ilustrații, offset ivory, alb-negru, Minion Pro, copertă tare, material catifea, design brodat',
+    cfgPricingCustomName: 'Configurația ta',
+    cfgPricingCustomPrice: 'Personalizat',
+    cfgPricingCustomDesc: 'Pe baza opțiunilor selectate mai sus — hai să stabilim împreună prețul potrivit pentru ediția ta unică.',
+    cfgPricingCustomCta: 'Contactează-ne',
   },
 }
 
