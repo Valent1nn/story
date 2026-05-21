@@ -72,7 +72,7 @@ const PACKAGING_COLORS = [
 
 // Secondary (interior) colors — Suedel® Luxe range
 const INTERIOR_COLORS = [
-  { id: 'emeraude', hex: '#2b6b56', dark: true, label: 'SLG4521 Emeraude' },
+  { id: 'emeraude', hex: '#1e3a2a', dark: true, label: 'SLG4521 Emeraude' },
   { id: 'pervenche', hex: '#44305e', dark: true, label: 'SLG4563 Pervenche' },
   { id: 'royal', hex: '#1a2d4d', dark: true, label: 'SLG4524 Royal' },
   { id: 'tomate', hex: '#64151d', dark: true, label: 'SLG4516 Tomate' },
